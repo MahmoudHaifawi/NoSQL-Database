@@ -1,6 +1,5 @@
 # NoSQL-Database — Decentralized Cluster (Java)
 
-**An educational, modular, and extensible distributed key-value store, built in Java.**
 
 ---
 
