@@ -75,12 +75,39 @@ M1. M2 supplies `onUpdate`; M3 supplies `onDelete`.
 
 ### Milestone order
 
-| # | Milestone | Fills | Depends on |
-|---|-----------|-------|-----------|
-| M1 | B+-tree indexing (disk-paged) | Indexing; efficiently-indexed unique ID | — |
-| M2 | Document/property update + optimistic locking | Property read/write; optimistic locking | M1 |
-| M3 | Delete DB + delete document | Delete DB / document | M1 (M2 for version reuse) |
-| M4 | Testing + demo + hardening | Testing evidence; demo app; (security) | M1–M3 |
+The four required features (M1–M4) are the core. M5 is the user's UI-consolidation goal.
+M6–M13 are **standout features** chosen to differentiate the project for backend /
+distributed-systems / DevOps roles (Gulf and global) — see §9.
+
+| # | Milestone | Fills / Adds | Depends on | Status |
+|---|-----------|--------------|-----------|--------|
+| CI | GitHub Actions: build + test + container integration tests | DevOps (stood up first, protects all later work) | — | committed, early |
+| M1 | B+-tree indexing (disk-paged) + query UI slice | Indexing; efficient unique ID | — | required |
+| M2 | Document/property update + optimistic locking + UI slice | Property read/write; optimistic locking | M1 | required |
+| M3 | Delete DB + delete document + UI slice | Delete DB / document | M1 (M2 for version reuse) | required |
+| M4 | Test suite + web demo assembly + security (BCrypt/JWT/RBAC) | Testing evidence; demo; security | M1–M3 | required |
+| M5 | Single app (unify the demo into one polished client) | UI consolidation (user goal) | M4 | committed |
+| M6 | Consistent hashing + virtual nodes | Node hashing & load balancing | M1 | standout (T1) |
+| M7 | Quorum consistency (N/R/W) + read-repair | Data consistency | M6 | standout (T1) |
+| M8 | Vector clocks (distributed conflict detection) | Data consistency (distributed) | M2, M7 | standout (T2) |
+| M9 | Gossip / SWIM failure detection + dynamic membership | Availability; communication protocols | M6 (M7) | standout (T2) |
+| M10 | WAL + crash recovery | Durability | M1–M3 | standout (T2) |
+| M11 | Query language + index-aware planner | Query-engine depth | M1 | standout (T2, drop-first) |
+| M12 | Observability (Prometheus/Grafana) + YCSB benchmark | Testing; quantified results | M6–M9 | standout (T1) |
+| M13 | Kubernetes + Helm deployment | DevOps; cloud | M4 (stable app) | standout (T1) |
+
+**Sequencing rationale:** CI is stood up first so every milestone is test-protected. The
+core (M1–M4) comes before the distributed layer because update/delete must exist before
+they can be made quorum- and failure-aware. In the distributed phase, **consistent hashing
+(M6) precedes quorum (M7)** because the ring defines each key's replica set; **vector
+clocks (M8)** give read-repair its conflict-resolution rule; **gossip (M9)** makes the ring
+and quorum failure-aware. Observability + benchmark (M12) come after the distributed layer
+so the numbers are meaningful; K8s (M13) deploys the finished system.
+
+**Descoping guidance (drop in this order under scope pressure):** M11 (query planner) →
+M13 (keep CI, drop K8s) → M10 (WAL). **Never drop** the consistency/availability core
+(M6–M9) or observability+benchmark (M12) — they carry the standout story. Merkle-tree
+anti-entropy remains an *optional* stretch on top of M7/M8, not a committed milestone.
 
 **Client strategy (decided):** the demo client is the **existing Thymeleaf web UI**,
 extended. Today it is a setup-only admin panel (create DB / add user / create schema) with
@@ -106,9 +133,11 @@ end-user client is the web UI.)
   reads return the new copy).
 
 ### Out of scope (documented as future work)
-Write-ahead log; dynamic membership / autoscaling; latch-crabbing concurrency;
-variable-length slotted pages (we cap string keys instead); server-side retry loops
-(client retries on conflict); keyset/cursor pagination (offset/limit in v1).
+Latch-crabbing concurrency within the B+-tree; variable-length slotted pages (we cap
+string keys instead); server-side retry loops (client retries on conflict); keyset/cursor
+pagination (offset/limit in v1); cluster autoscaling; Merkle-tree anti-entropy (optional
+stretch, not committed). *(WAL is now M10; dynamic membership is now M9 — both promoted
+into scope as standout milestones.)*
 
 ---
 
@@ -309,7 +338,65 @@ Detailed decisions deferred to the M4 spec.
 
 ---
 
-## 9. Next step
+## 9. Standout milestones (M5–M13) — design intent
+
+Chosen to differentiate the project for backend / distributed-systems / DevOps roles,
+Gulf and global. Full designs are produced per-milestone when reached; below is intent and
+the key decisions each will resolve.
+
+### 9.1 M5 — Single app (unify the demo client)
+Consolidate the per-milestone UI slices into one polished demo application over the node
+APIs. **Open question for M5:** whether "single app" means merging the three Spring modules
+into one deployable, or (more likely, to preserve the decentralized architecture) a single
+unified front-end / SPA over the gateway. **The node processes must stay separate** — that
+decentralization is the point of the project.
+
+### 9.2 M6 — Consistent hashing + virtual nodes
+Replace round-robin placement with a hash ring plus virtual nodes; documents and replicas
+map to ring positions, with smooth rebalancing when N changes. Prerequisite for meaningful
+quorum (defines each key's replica set). Directly strengthens the brief's "node hashing &
+load balancing" report section.
+
+### 9.3 M7 — Quorum consistency (N/R/W) + read-repair
+Tunable replication factor N with read/write quorums R/W: writes ack from W replicas; reads
+gather from R and **read-repair** stale replicas. Turns full-broadcast into real tunable
+consistency. Depends on M6 for the replica set.
+
+### 9.4 M8 — Vector clocks (distributed conflict detection)
+Upgrade M2's per-document `_version` integer to a **version vector** (a counter per node);
+concurrent writes on different nodes are detected as conflicts vs. causally ordered.
+Read-repair (M7) uses the vectors to pick winners / surface siblings.
+
+### 9.5 M9 — Gossip / SWIM failure detection + dynamic membership
+Nodes gossip heartbeats; SWIM-style suspicion detects down/slow peers and disseminates
+membership; the ring (M6) and quorum routing (M7) react to liveness. Removes the static
+mesh / silent-failure weakness.
+
+### 9.6 M10 — WAL + crash recovery
+Append-only write-ahead log for all mutations (insert/update/delete); replay on restart to
+recover. Upgrades the "rebuild index from records" fallback into real durability with a
+recovery routine.
+
+### 9.7 M11 — Query language + index-aware planner (drop-first stretch)
+A small `WHERE` DSL parsed into a plan; a rule-based planner picks an index vs. a full scan.
+**Scoped to single-field predicates** to avoid ballooning into multi-index intersection.
+First milestone to drop under scope pressure.
+
+### 9.8 M12 — Observability + YCSB benchmark
+Prometheus metrics (query latency, buffer-pool hit ratio, per-node request counts,
+replication lag) + Grafana dashboards, plus a YCSB-style benchmark producing published
+throughput/latency graphs. Best after the distributed layer (M6–M9) so the numbers mean
+something.
+
+### 9.9 M13 — Kubernetes + Helm deployment
+Replace the docker shell scripts with a Helm chart / K8s manifests. (CI is stood up early —
+see the roadmap table — and protects every milestone; K8s deployment lands once the app is
+stable.)
+
+---
+
+## 10. Next step
 
 Generate the **M1 implementation plan** (B+-tree indexing) via the writing-plans process.
-M2–M4 each get their own spec + plan when reached.
+Each subsequent milestone gets its own spec + plan when reached. Stand up the **CI**
+pipeline early (before/with M1) so all later milestones are test-protected.
