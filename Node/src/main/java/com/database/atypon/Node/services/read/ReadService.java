@@ -9,8 +9,11 @@ import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 @Service
 public class ReadService {
@@ -19,12 +22,10 @@ public class ReadService {
             org.slf4j.LoggerFactory.getLogger(ReadService.class);
 
     private final Cache cache;
-    private List<Thread> threads;
     private final int NUMBER_OF_THREADS = 4;
 
     public ReadService(Cache cache) {
         this.cache = cache;
-        threads = new Vector<>();
     }
 
     public Response fetchById(String id, String databaseName, String schemaName) {
@@ -41,72 +42,37 @@ public class ReadService {
     }
 
     public Response fetchAll(String databaseName, String schemaName) {
+        String documentsPath = PathBuilder.getPathToAllDocuments(databaseName, schemaName);
+        return readDocumentsInDirectory(new File(documentsPath));
+    }
+
+    Response readDocumentsInDirectory(File folder) {
+        File[] files = folder.listFiles(File::isFile);
+        if (files == null) {
+            return new Response(ResponseType.ERROR, "Documents directory not found");
+        }
+        JSONObject result = new JSONObject();
+        ExecutorService executor = Executors.newFixedThreadPool(Math.min(NUMBER_OF_THREADS, Math.max(1, files.length)));
         try {
-            String documentsPath = PathBuilder.getPathToAllDocuments(databaseName, schemaName);
-            return readAllDocuments(documentsPath);
-        }catch (Exception e){
-            return null;
-        }
-
-    }
-
-    private Response readAllDocuments(String documentsPath) {
-        // Check if the threads are busy
-        if(isThreadsBusy())
-            return new Response(ResponseType.ERROR, "Threads are busy");
-//        try{
-            JSONObject jsonObject = new JSONObject();
-            File folder = new File(documentsPath);
-            File[] listOfFiles = folder.listFiles();
-            for(File file : listOfFiles){
-                log.debug("Reading file {}", file.getName());
-            }
-            log.debug("Number of files: {}", listOfFiles.length);
-            initializeReadingThreads(listOfFiles, jsonObject);
-            startReadingThreads();
-            try{
-                joinReadingThreads();
-            }catch (Exception e){
-                log.error("Error joining reading threads", e);
-            }
-
-            return new Response(ResponseType.SUCCESS, "Documents fetched successfully",
-                    jsonObject.toString());
-    }
-
-    private boolean isThreadsBusy() {
-       return threads != null && threads.stream().anyMatch(Thread::isAlive);
-    }
-    private void startReadingThreads() {
-        for(Thread thread : threads){
-            thread.start();
-        }
-    }
-    private void joinReadingThreads() throws InterruptedException {
-        for(Thread thread : threads){
-            thread.join();
-        }
-    }
-    private Thread createThread(File[] listOfFiles, int start, int end, JSONObject jsonObject){
-        return new Thread(() -> {
-            for (int i = start; i < end; i++) {
-                if (listOfFiles[i].isFile()) {
-                    FileReader fileReader = new FileReader(listOfFiles[i]);
-                    fileReader.read();
-                    log.debug("File {} from thread: {}", listOfFiles[i].getName(),
-                            Thread.currentThread().getName());
-                    synchronized (jsonObject){
-                        jsonObject.put(listOfFiles[i].getName(), fileReader.getContent());
+            List<Callable<Void>> tasks = new ArrayList<>();
+            for (File file : files) {
+                tasks.add(() -> {
+                    FileReader reader = new FileReader(file);
+                    reader.read();
+                    log.debug("Reading file {}", file.getName());
+                    synchronized (result) {
+                        result.put(file.getName(), reader.getContent());
                     }
-                }
+                    return null;
+                });
             }
-        });
-    }
-    private void initializeReadingThreads(File[] listOfFiles, JSONObject jsonObject){
-        threads.clear();
-        threads.add(createThread(listOfFiles, 0, listOfFiles.length/4, jsonObject));
-        threads.add(createThread(listOfFiles, listOfFiles.length/4, listOfFiles.length/2, jsonObject));
-        threads.add(createThread(listOfFiles, listOfFiles.length/2, 3*listOfFiles.length/4, jsonObject));
-        threads.add(createThread(listOfFiles, 3*listOfFiles.length/4, listOfFiles.length, jsonObject));
+            executor.invokeAll(tasks); // blocks until all reads complete
+            return new Response(ResponseType.SUCCESS, "Documents fetched successfully", result.toString());
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new Response(ResponseType.ERROR, "Read interrupted");
+        } finally {
+            executor.shutdown();
+        }
     }
 }
