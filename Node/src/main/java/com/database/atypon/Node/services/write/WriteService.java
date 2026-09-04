@@ -4,6 +4,7 @@ import com.database.atypon.Node.model.Network;
 import com.database.atypon.Node.model.Node;
 import com.database.atypon.Node.operations.write.WriteOperation;
 import com.database.atypon.Node.utils.AffinityLoadBalancer;
+import com.database.atypon.Node.utils.JsonKeys;
 import com.database.atypon.Node.utils.PathBuilder;
 import com.database.atypon.Node.utils.file_operations.fileWriter.FileWriter;
 import com.database.atypon.Node.utils.response.Response;
@@ -30,7 +31,7 @@ public class WriteService {
 
     public Response createSchema(String database, HashMap<String, Object> schema) {
             JSONObject schemaJSON = new JSONObject(schema);
-            String schemaName = schemaJSON.get("schemaName").toString();
+            String schemaName = schemaJSON.get(JsonKeys.SCHEMA_NAME).toString();
 
             // Assign the node affinity to the schema using the load balancer
             String nodeAffinity = AffinityLoadBalancer.assignAffinity(database, schemaName);
@@ -38,7 +39,7 @@ public class WriteService {
             // write the node affinity in the affinities directory
             writeNodeAffinity(database, schemaName, nodeAffinity);
 
-            JSONObject schemaDetails = schemaJSON.getJSONObject("schema");
+            JSONObject schemaDetails = schemaJSON.getJSONObject(JsonKeys.SCHEMA);
             return writeOperation.createSchema(database, schemaName, schemaDetails);
     }
 
@@ -84,7 +85,7 @@ public class WriteService {
             schemaAffinityFile.createNewFile();
 
             JSONObject schemaAffinity = new JSONObject();
-            schemaAffinity.put("Node", nodeAffinity);
+            schemaAffinity.put(JsonKeys.NODE, nodeAffinity);
 
             FileWriter fileWriter = new FileWriter(schemaAffinityFile, schemaAffinity.toString());
             fileWriter.write();
