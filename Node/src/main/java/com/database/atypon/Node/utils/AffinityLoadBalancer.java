@@ -36,7 +36,7 @@ public class AffinityLoadBalancer {
         FileReader reader = new FileReader(new File(pathToAffinity));
         reader.read();
         JSONObject affinityJSON = new JSONObject(reader.getContent());
-        String node = affinityJSON.getString("Node");
+        String node = affinityJSON.getString(JsonKeys.NODE);
 
         if(Network.getSelf().getName().equals(node))
             return new Response(ResponseType.SUCCESS, "Affinity is correct");
