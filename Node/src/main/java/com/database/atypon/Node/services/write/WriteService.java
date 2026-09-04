@@ -23,6 +23,9 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class WriteService {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(WriteService.class);
+
     private final WriteOperation writeOperation;
 
     public WriteService(WriteOperation writeOperation) {
@@ -90,7 +93,7 @@ public class WriteService {
             FileWriter fileWriter = new FileWriter(schemaAffinityFile, schemaAffinity.toString());
             fileWriter.write();
         }catch (Exception e){
-            e.printStackTrace();
+            log.error("Failed to write node affinity", e);
         }
     }
 }
