@@ -36,7 +36,7 @@ public class Validators {
             throw new Exception("Schema doesn't exist");
         }
         JSONObject schemaJSON = new JSONObject(fileReader.getContent());
-        JSONObject schemaDetails = schemaJSON.getJSONObject("schema");
+        JSONObject schemaDetails = schemaJSON.getJSONObject(JsonKeys.SCHEMA);
         for (String key : schemaDetails.keySet()) {
             String type = "java.lang." + schemaDetails.getString(key);
 
