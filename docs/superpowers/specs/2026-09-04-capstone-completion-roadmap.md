@@ -18,7 +18,9 @@ four **explicitly required** features unimplemented or stubbed. This document:
 
 The primary goal is a **to-spec, portfolio-grade** completion of the capstone — not a
 commercial database. Design choices favor correctness, testability, and clear
-"I understand DB internals" narratives over production hardening.
+"I understand DB internals" narratives over production hardening. The existing code was
+written early in the author's studies and is refactored to a senior (4-years-experience)
+Java standard as part of the work — see M0 (§3) and the boy-scout standard (§4).
 
 ---
 
@@ -81,7 +83,7 @@ distributed-systems / DevOps roles (Gulf and global) — see §9.
 
 | # | Milestone | Fills / Adds | Depends on | Status |
 |---|-----------|--------------|-----------|--------|
-| CI | GitHub Actions: build + test + container integration tests | DevOps (stood up first, protects all later work) | — | committed, early |
+| M0 | Foundations & refactor baseline: test harness + CI, SLF4J logging, unified error/exception model, constants, DI + thread-safety hygiene, fix outright bugs | Code quality (Clean Code / Effective Java / SOLID); DevOps (CI) | — | committed, first |
 | M1 | B+-tree indexing (disk-paged) + query UI slice | Indexing; efficient unique ID | — | required |
 | M2 | Document/property update + optimistic locking + UI slice | Property read/write; optimistic locking | M1 | required |
 | M3 | Delete DB + delete document + UI slice | Delete DB / document | M1 (M2 for version reuse) | required |
@@ -105,7 +107,7 @@ and quorum failure-aware. Observability + benchmark (M12) come after the distrib
 so the numbers are meaningful; K8s (M13) deploys the finished system.
 
 **Descoping guidance (drop in this order under scope pressure):** M11 (query planner) →
-M13 (keep CI, drop K8s) → M10 (WAL). **Never drop** the consistency/availability core
+M13 (drop K8s; CI lives in M0) → M10 (WAL). **Never drop** the consistency/availability core
 (M6–M9) or observability+benchmark (M12) — they carry the standout story. Merkle-tree
 anti-entropy remains an *optional* stretch on top of M7/M8, not a committed milestone.
 
@@ -119,6 +121,31 @@ each response as visible load-balance evidence, and the automated test suite. (A
 script may still back the reproducible load-balance/correctness evidence; the primary
 end-user client is the web UI.)
 
+### M0 — Foundations & refactor baseline (design intent)
+
+The codebase was written early in the author's studies and is being brought up to a senior
+(4-years-experience) Java standard. Several issues are **correctness bugs**, not style:
+`broadcastSchema/broadcastDocument` return before their executor tasks finish and leak an
+un-shutdown thread pool; `ReadService` keeps request state (`threads`) in a singleton field
+and returns `null` on error; `Cache` mixes a Spring `@Component` with a hand-rolled
+`getInstance()` singleton. M0 establishes the baseline everything else builds on:
+
+- **Test harness + CI** — JUnit 5, a test layout, and a GitHub Actions workflow
+  (build + test). Add **characterization tests** for current behavior *before* refactoring it.
+- **Logging** — replace `System.out.println` with SLF4J/Logback.
+- **Error/exception model** — one consistent strategy (typed exceptions + a global handler
+  / consistent `Response`); stop swallowing exceptions and returning `null`.
+- **Constants & config** — extract magic strings (`"info"`, `"nextId"`, `"Node"`, paths)
+  into constants/enums.
+- **DI & thread-safety hygiene** — constructor injection throughout; remove mutable
+  per-request state from singleton services/controllers; fix the broadcast (await
+  completion, managed executor) and the `Cache` singleton/DI conflict.
+- **Housekeeping** — remove dead/commented code and typos; gitignore `.idea/`.
+
+Scope discipline: M0 fixes cross-cutting foundations and outright bugs only. Code a later
+milestone rewrites (`Cache` internals → M1 buffer pool; auth → M4 security; broadcast → M7
+quorum) gets a minimal correct fix now, not a full polish.
+
 ---
 
 ## 4. Cross-cutting principles
@@ -131,6 +158,11 @@ end-user client is the web UI.)
 - **Consistency model.** As the brief allows, replication is eventually consistent during
   broadcast (a concurrent read on a not-yet-updated node sees the old copy; once updated,
   reads return the new copy).
+
+- **Code-quality standard (boy-scout rule).** Every milestone leaves the code it touches at
+  a senior Java bar — Clean Code (Uncle Bob), Effective Java (Bloch), SOLID, appropriate
+  design patterns — with tests. Continuous, not a one-time pass; directly serves the brief's
+  required "defend your code against…" report sections.
 
 ### Out of scope (documented as future work)
 Latch-crabbing concurrency within the B+-tree; variable-length slotted pages (we cap
@@ -397,6 +429,7 @@ stable.)
 
 ## 10. Next step
 
-Generate the **M1 implementation plan** (B+-tree indexing) via the writing-plans process.
-Each subsequent milestone gets its own spec + plan when reached. Stand up the **CI**
-pipeline early (before/with M1) so all later milestones are test-protected.
+Generate the **M0 implementation plan** (foundations & refactor baseline) via the
+writing-plans process, then the **M1 plan** (B+-tree indexing). Each subsequent milestone
+gets its own spec + plan when reached and applies the boy-scout code-quality standard (§4)
+to the code it touches, behind tests.
