@@ -6,15 +6,12 @@ import com.database.atypon.Node.utils.response.Response;
 import com.database.atypon.Node.utils.response.ResponseType;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Queue;
-
 @RestController
 @RequestMapping("/user/read")
 public class ReadController {
 
    private final ReadService readService;
    private final AuthenticationService authenticationService;
-   private Queue<Response> responses;
    public ReadController(ReadService readService, AuthenticationService authenticationService) {
        this.readService = readService;
        this.authenticationService = authenticationService;

@@ -12,20 +12,10 @@ public class Cache implements CacheInterface{
     private final ConcurrentHashMap<String, DoubleLinkedList> cacheQueue;
     private final int MAXIMUM_SIZE = 50;
     private int size = 0;
-    private static volatile Cache instance;
 
-    private Cache(){
+    public Cache(){
         map = new ConcurrentHashMap<>();
         cacheQueue = new ConcurrentHashMap<>();
-    }
-
-    public static Cache getInstance(){
-        if(instance == null)
-            synchronized (Cache.class){
-                if(instance == null)
-                    instance = new Cache();
-            }
-        return instance;
     }
 
     @Override
