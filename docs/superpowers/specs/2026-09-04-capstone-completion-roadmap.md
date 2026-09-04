@@ -82,6 +82,16 @@ M1. M2 supplies `onUpdate`; M3 supplies `onDelete`.
 | M3 | Delete DB + delete document | Delete DB / document | M1 (M2 for version reuse) |
 | M4 | Testing + demo + hardening | Testing evidence; demo app; (security) | M1–M3 |
 
+**Client strategy (decided):** the demo client is the **existing Thymeleaf web UI**,
+extended. Today it is a setup-only admin panel (create DB / add user / create schema) with
+no way to use the data. Rather than deferring all of it to M4, **each milestone ships a
+thin UI slice** for the feature it adds — M1 a query page, M2 insert/update forms, M3
+delete controls — so every milestone is visible in the browser as it lands. M4 completes
+the demo: schema-driven dynamic forms, result tables, a **"served by Node N" badge** on
+each response as visible load-balance evidence, and the automated test suite. (A small CLI
+script may still back the reproducible load-balance/correctness evidence; the primary
+end-user client is the web UI.)
+
 ---
 
 ## 4. Cross-cutting principles
@@ -220,6 +230,14 @@ Every query result is checked against a full-scan over the same data.
 5. **Durability**: leave dirty flag set (simulated crash) → startup rebuild → correct.
 6. **Concurrency smoke**: queries during writes — no exceptions, no corruption.
 
+### 5.12 UI slice (thin)
+
+Add a **Query page** to the DBMS web UI: pick database / schema / field, choose an operator
+(EQ / GT / GTE / LT / LTE / BETWEEN), order and page size, submit, and render the returned
+documents in a table with the **"served by Node N" badge**. This is the browser-visible
+proof that the index works, and the first data-usage page in the UI. (Also a
+`/admin/index/create` form so an index can be created without curl.)
+
 ---
 
 ## 6. M2 — Document/property update + optimistic locking (design intent)
@@ -269,12 +287,20 @@ delete, cascade rules) are deferred to the M3 spec.
 
 Fills: *testing evidence*; *demo application*; (security).
 
+- **Demo application = the extended Thymeleaf web UI** (decision recorded in §3). Building
+  on the existing setup panel, add data-usage pages that call the node APIs through the
+  DBMS gateway: insert a document (form generated from the schema), read by id, read all,
+  **run an index query** (equality / range / BETWEEN / ORDER BY + pagination), update a
+  property, delete a document. Render results in tables.
+- **Load-balance evidence in the UI:** each response shows a **"served by Node N" badge**;
+  a small stats view (or CLI script) fires many requests and shows the distribution across
+  nodes and the affinity mapping — the brief's required *evidence of correctness and load
+  balance*.
+- **Incremental delivery:** the thin per-milestone UI slices (M1–M3) are assembled and
+  polished here; M4 is the finishing pass, not the first UI work.
 - **Automated tests** across M1–M3 using the brute-force-oracle technique, plus
   integration tests exercising affinity forwarding, broadcast replication, and conflict
   retries.
-- **Demo application** (CLI or small web app — e.g. contacts/banking) on top of the DB,
-  presenting **evidence of correctness and load balance** (which node served which
-  request; affinity distribution).
 - **Optional hardening:** replace plaintext password compare with **BCrypt**; optionally
   a signed token. (Not strictly required, but strengthens the "security issues" report
   section.)
