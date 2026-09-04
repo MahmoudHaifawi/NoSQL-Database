@@ -9,6 +9,9 @@ import java.util.List;
 @RestController
 public class NetworkController {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(NetworkController.class);
+
     private final Network network;
 
     public NetworkController(Network network){
@@ -25,7 +28,7 @@ public class NetworkController {
     @PostMapping("/network/add/nodes")
     public String setNodes(@RequestBody List<Node> nodes){
         for(Node node : nodes){
-            System.out.print(node.getName() + "  ");
+            log.debug("peer {}", node.getName());
         }
         network.setNodes(nodes);
         return "Nodes set";

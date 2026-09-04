@@ -1,5 +1,6 @@
 package com.database.atypon.Node.operations.write;
 
+import com.database.atypon.Node.utils.JsonKeys;
 import com.database.atypon.Node.utils.PathBuilder;
 import com.database.atypon.Node.utils.Validators;
 import com.database.atypon.Node.utils.file_operations.fileReader.FileReader;
@@ -24,14 +25,14 @@ public class WriteOperation {
                 JSONObject finalSchema = new JSONObject();
                 JSONObject infoObject = new JSONObject();
 
-                infoObject.put("schemaName", schemaName);
-                infoObject.put("nextId", 0);
+                infoObject.put(JsonKeys.SCHEMA_NAME, schemaName);
+                infoObject.put(JsonKeys.NEXT_ID, 0);
 
-                finalSchema.put("info", infoObject);
-                finalSchema.put("schema", schemaDetails);
+                finalSchema.put(JsonKeys.INFO, infoObject);
+                finalSchema.put(JsonKeys.SCHEMA, schemaDetails);
 
-                String pahToSchema = PathBuilder.getPathToSchema(database, schemaName);
-                File schemaFile = new File(pahToSchema);
+                String pathToSchema = PathBuilder.getPathToSchema(database, schemaName);
+                File schemaFile = new File(pathToSchema);
 
                 if (schemaFile.exists())
                     return new Response(ResponseType.ERROR, "Schema already exists");
@@ -66,8 +67,8 @@ public class WriteOperation {
                 fileReader.read();
 
                 JSONObject schemaJSON = new JSONObject(fileReader.getContent());
-                JSONObject infoObject = schemaJSON.getJSONObject("info");
-                int nextId = infoObject.getInt("nextId");
+                JSONObject infoObject = schemaJSON.getJSONObject(JsonKeys.INFO);
+                int nextId = infoObject.getInt(JsonKeys.NEXT_ID);
 
                 updateSchemaInfo(database, schema, nextId + 1);
 
@@ -93,8 +94,8 @@ public class WriteOperation {
             fileReader.read();
 
             JSONObject schemaJSON = new JSONObject(fileReader.getContent());
-            JSONObject infoObject = schemaJSON.getJSONObject("info");
-            infoObject.put("nextId", i);
+            JSONObject infoObject = schemaJSON.getJSONObject(JsonKeys.INFO);
+            infoObject.put(JsonKeys.NEXT_ID, i);
 
             FileWriter fileWriter = new FileWriter(schemaFile, schemaJSON.toString());
             fileWriter.write();

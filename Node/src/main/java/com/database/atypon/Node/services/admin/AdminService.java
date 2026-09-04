@@ -4,14 +4,14 @@ import com.database.atypon.Node.model.Network;
 import com.database.atypon.Node.model.Node;
 import com.database.atypon.Node.model.User;
 import com.database.atypon.Node.operations.admin.AdminOperations;
+import com.database.atypon.Node.utils.concurrent.Broadcaster;
 import com.database.atypon.Node.utils.response.Response;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Vector;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Service
 public class AdminService {
@@ -37,16 +37,10 @@ public class AdminService {
         return res;
     }
     public List<Response> broadcastDatabase(String databaseName){
-        // use thread pool to broadcast
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(4,4, 2,TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-        Vector<Response> res = new Vector<>();
+        List<Supplier<Response>> tasks = new ArrayList<>();
         for (Node node : Network.nodes) {
-            executor.execute(() -> {
-                synchronized (res) {
-                    res.add(node.addDatabase(databaseName));
-                }
-            });
+            tasks.add(() -> node.addDatabase(databaseName));
         }
-        return res;
+        return Broadcaster.broadcast(tasks);
     }
 }
