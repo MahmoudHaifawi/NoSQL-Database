@@ -6,6 +6,7 @@ import com.database.atypon.Node.operations.write.WriteOperation;
 import com.database.atypon.Node.utils.AffinityLoadBalancer;
 import com.database.atypon.Node.utils.JsonKeys;
 import com.database.atypon.Node.utils.PathBuilder;
+import com.database.atypon.Node.utils.concurrent.Broadcaster;
 import com.database.atypon.Node.utils.file_operations.fileWriter.FileWriter;
 import com.database.atypon.Node.utils.response.Response;
 import com.database.atypon.Node.utils.response.ResponseType;
@@ -13,12 +14,10 @@ import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Vector;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 @Service
 public class WriteService {
@@ -56,29 +55,19 @@ public class WriteService {
     }
 
     public List<Response> broadcastSchema(String database, HashMap<String, Object> schema) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(4,4, 2,TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-        Vector<Response> res = new Vector<>();
+        List<Supplier<Response>> tasks = new ArrayList<>();
         for (Node node : Network.nodes) {
-            executor.execute(() -> {
-                synchronized (res) {
-                    res.add(node.createSchema(database, schema));
-                }
-            });
+            tasks.add(() -> node.createSchema(database, schema));
         }
-        return res;
+        return Broadcaster.broadcast(tasks);
     }
 
     public List<Response> broadcastDocument(String database, String schema, HashMap<String, Object> document) {
-        ThreadPoolExecutor executor = new ThreadPoolExecutor(4,4, 2, TimeUnit.SECONDS, new LinkedBlockingQueue<>());
-        List<Response> res = new Vector<>();
+        List<Supplier<Response>> tasks = new ArrayList<>();
         for (Node node : Network.nodes) {
-            executor.execute(() -> {
-                synchronized (res) {
-                    res.add(node.createDocument(database, schema, document));
-                }
-            });
+            tasks.add(() -> node.createDocument(database, schema, document));
         }
-        return res;
+        return Broadcaster.broadcast(tasks);
     }
 
     private void writeNodeAffinity(String database, String schemaName, String nodeAffinity) {
