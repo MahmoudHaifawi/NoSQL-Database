@@ -37,7 +37,11 @@ public final class Broadcaster {
             return results;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            return List.of(new Response(ResponseType.ERROR, "Broadcast interrupted"));
+            List<Response> interrupted = new ArrayList<>(tasks.size());
+            for (int i = 0; i < tasks.size(); i++) {
+                interrupted.add(new Response(ResponseType.ERROR, "Broadcast interrupted"));
+            }
+            return interrupted;
         } finally {
             executor.shutdown();
         }
@@ -47,7 +51,7 @@ public final class Broadcaster {
         try {
             return future.get();
         } catch (ExecutionException e) {
-            return new Response(ResponseType.ERROR, "Broadcast task failed: " + e.getCause().getMessage());
+            return new Response(ResponseType.ERROR, "Broadcast task failed: " + String.valueOf(e.getCause()));
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new Response(ResponseType.ERROR, "Broadcast task interrupted");
