@@ -26,6 +26,16 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+			<exclusions>
+				<!-- jsonassert pulls in the Android org.json shim, whose JSONException
+				     is a checked exception. It shadows the real org.json:json dependency
+				     (declared below) on the test classpath and breaks compilation of any
+				     test that uses org.json.JSONObject. jsonassert itself is unused here. -->
+				<exclusion>
+					<groupId>org.skyscreamer</groupId>
+					<artifactId>jsonassert</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.json</groupId>

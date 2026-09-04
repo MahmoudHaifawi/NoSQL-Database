@@ -21,6 +21,9 @@ import java.util.Vector;
 @RequestMapping("/write")
 public class WriteController {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(WriteController.class);
+
     private final WriteService writeService;
     private final AuthenticationService authenticationService;
 
@@ -65,7 +68,7 @@ public class WriteController {
         if(schema == null || schema.isEmpty())
             return new Vector<>(List.of(new Response(ResponseType.ERROR, "Schema name is empty")));
 
-        System.out.println("Write document from " + token);
+        log.debug("Write document from {}", token);
 
         if(!authenticationService.isUserToken(token))
             return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
@@ -88,7 +91,7 @@ public class WriteController {
             try{
                 t.join();
             }catch (InterruptedException e){
-                e.printStackTrace();
+                log.error("Interrupted while waiting for forwarded request", e);
             }
             return responses;
         }
