@@ -27,3 +27,10 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+# IDE
+.idea/
+*.iml
+# Build output
+target/
+**/target/
