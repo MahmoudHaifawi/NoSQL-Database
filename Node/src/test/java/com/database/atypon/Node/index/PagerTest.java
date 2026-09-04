@@ -58,4 +58,22 @@ class PagerTest {
             assertThat(pa.rightSibling()).isEqualTo(42); // survived via eviction write-back
         }
     }
+
+    @Test
+    void dirtyPagePersistsOnCloseWithoutExplicitFlush(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        java.io.File f = dir.resolve("closeflush.idx").toFile();
+        try (Pager pager = new Pager(f)) {
+            int id = pager.allocate();
+            Page p = pager.get(id);
+            p.initLeaf();
+            p.setRightSibling(99);
+            pager.markDirty(id);
+            // NOTE: no explicit flushAll() — close() must persist it
+        }
+        try (Pager pager = new Pager(f)) {
+            Page reloaded = pager.get(0);
+            assertThat(reloaded.isLeaf()).isTrue();
+            assertThat(reloaded.rightSibling()).isEqualTo(99);
+        }
+    }
 }
