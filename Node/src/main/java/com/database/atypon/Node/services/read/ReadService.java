@@ -15,6 +15,9 @@ import java.util.Vector;
 @Service
 public class ReadService {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(ReadService.class);
+
     private final Cache cache;
     private List<Thread> threads;
     private final int NUMBER_OF_THREADS = 4;
@@ -56,23 +59,19 @@ public class ReadService {
             File folder = new File(documentsPath);
             File[] listOfFiles = folder.listFiles();
             for(File file : listOfFiles){
-                System.out.println(file.getName());
+                log.debug("Reading file {}", file.getName());
             }
-            System.out.println("Number of files: " + listOfFiles.length);
+            log.debug("Number of files: {}", listOfFiles.length);
             initializeReadingThreads(listOfFiles, jsonObject);
             startReadingThreads();
             try{
                 joinReadingThreads();
             }catch (Exception e){
-                e.printStackTrace();
+                log.error("Error joining reading threads", e);
             }
 
             return new Response(ResponseType.SUCCESS, "Documents fetched successfully",
                     jsonObject.toString());
-//        }catch (Exception e){
-//            System.out.println(e.getMessage());
-//            return new Response(ResponseType.ERROR, "Error while fetching documents", e.getMessage());
-//        }
     }
 
     private boolean isThreadsBusy() {
@@ -94,7 +93,7 @@ public class ReadService {
                 if (listOfFiles[i].isFile()) {
                     FileReader fileReader = new FileReader(listOfFiles[i]);
                     fileReader.read();
-                    System.out.println("File " + listOfFiles[i].getName() + " From Thread: " +
+                    log.debug("File {} from thread: {}", listOfFiles[i].getName(),
                             Thread.currentThread().getName());
                     synchronized (jsonObject){
                         jsonObject.put(listOfFiles[i].getName(), fileReader.getContent());
