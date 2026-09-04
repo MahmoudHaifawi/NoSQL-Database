@@ -11,6 +11,11 @@ import java.util.Set;
  * Reads/writes fixed 4 KB pages to an index file through an LRU buffer pool.
  * A page marked dirty is written back on eviction and on {@link #flushAll()}.
  * All public methods are synchronized on this Pager.
+ *
+ * <p><b>Pages are NOT pinned.</b> After {@link #get(int)} and mutating a page you MUST
+ * call {@link #markDirty(int)} promptly, before accessing other pages that could trigger
+ * eviction. The default pool ({@value #DEFAULT_POOL_PAGES} pages) exceeds any single
+ * B+-tree operation's working set; explicit pinning is deferred.
  */
 public class Pager implements Closeable {
 
@@ -29,11 +34,12 @@ public class Pager implements Closeable {
         this.file = new RandomAccessFile(path, "rw");
         this.pool = new LruCache<>(poolPages, (id, page) -> {
             try {
-                if (dirty.remove(id)) {
+                if (dirty.contains(id)) {
                     writeToDisk(id, page);
+                    dirty.remove(id);
                 }
             } catch (IOException e) {
-                throw new RuntimeException("flush on eviction failed for page " + id, e);
+                throw new java.io.UncheckedIOException("flush on eviction failed for page " + id, e);
             }
         });
     }
@@ -63,6 +69,11 @@ public class Pager implements Closeable {
         return page;
     }
 
+    /**
+     * Marks a page dirty so it is written back on eviction or {@link #flushAll()}.
+     * Pages are NOT pinned while dirty: call this immediately after mutating the page,
+     * before touching any other page that could evict it from the pool unflushed.
+     */
     public synchronized void markDirty(int pageId) {
         dirty.add(pageId);
     }
@@ -85,6 +96,7 @@ public class Pager implements Closeable {
 
     @Override
     public synchronized void close() throws IOException {
+        flushAll();
         file.close();
     }
 }
