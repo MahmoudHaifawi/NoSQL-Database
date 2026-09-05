@@ -3,6 +3,7 @@ package com.database.atypon.Node.services.index;
 import com.database.atypon.Node.index.BPlusTree;
 import com.database.atypon.Node.index.KeyCodec;
 import com.database.atypon.Node.index.KeyType;
+import com.database.atypon.Node.index.Page;
 import com.database.atypon.Node.index.Pager;
 import org.json.JSONObject;
 
@@ -100,5 +101,55 @@ public class IndexService {
 
     public void dropIndex(String db, String schema, String field) throws IOException {
         Files.deleteIfExists(indexFile(db, schema, field));
+    }
+
+    /** Query an index; docIds ordered (ASC/DESC over the field) then offset/limit paginated. */
+    public List<Integer> query(String db, String schema, String field,
+                               BPlusTree.Op op, Object value, Object high,
+                               boolean ascending, int offset, int limit) throws IOException {
+        if (!indexExists(db, schema, field)) {
+            throw new IllegalStateException("no index on " + schema + "." + field);
+        }
+        try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
+            BPlusTree tree = BPlusTree.open(pager);
+            KeyType keyType = indexKeyType(pager);
+            Object v = coerce(keyType, value);
+            Object h = (op == BPlusTree.Op.BETWEEN) ? coerce(keyType, high) : null;
+            return tree.queryDocIds(op, v, h, ascending, offset, limit);
+        }
+    }
+
+    /** Maintain every index defined on this schema after a document is written. */
+    public void onInsert(String db, String schema, int docId, JSONObject doc) throws IOException {
+        for (String field : listIndexes(db, schema)) {
+            if (!doc.has(field)) {
+                continue;
+            }
+            try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
+                BPlusTree tree = BPlusTree.open(pager);
+                KeyType keyType = indexKeyType(pager);
+                tree.insert(KeyCodec.encode(keyType, doc.get(field), docId));
+                tree.flush();
+            }
+        }
+    }
+
+    private KeyType indexKeyType(Pager pager) throws IOException {
+        com.database.atypon.Node.index.Page meta = pager.get(Pager.META_PAGE_ID);
+        if (!meta.hasValidMagic()) {
+            throw new IllegalStateException("corrupt or empty index file");
+        }
+        return meta.metaKeyType();
+    }
+
+    /** Coerce a raw request value (JSON number/String/Boolean) to the index's key type. */
+    private Object coerce(KeyType keyType, Object raw) {
+        switch (keyType) {
+            case INTEGER: return (raw instanceof Number) ? ((Number) raw).intValue() : Integer.parseInt(raw.toString());
+            case DOUBLE:  return (raw instanceof Number) ? ((Number) raw).doubleValue() : Double.parseDouble(raw.toString());
+            case BOOLEAN: return (raw instanceof Boolean) ? raw : Boolean.parseBoolean(raw.toString());
+            case STRING:  return raw.toString();
+            default: throw new IllegalStateException("unknown key type: " + keyType);
+        }
     }
 }
