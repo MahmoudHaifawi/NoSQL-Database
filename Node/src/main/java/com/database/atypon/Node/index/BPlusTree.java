@@ -29,10 +29,7 @@ public class BPlusTree {
     }
 
     private BPlusTree(Pager pager, KeyType keyType, int maxKeys) {
-        int max = defaultMaxKeys(keyType);
-        if (maxKeys < 3 || maxKeys > max) {
-            throw new IllegalArgumentException("maxKeys must be in [3, " + max + "], was " + maxKeys);
-        }
+        validateMaxKeys(keyType, maxKeys);
         this.pager = pager;
         this.keyType = keyType;
         this.keySize = KeyCodec.keySize(keyType);
@@ -44,11 +41,19 @@ public class BPlusTree {
         return Math.min(Page.maxLeafKeys(ks), Page.maxInternalKeys(ks));
     }
 
+    private static void validateMaxKeys(KeyType keyType, int maxKeys) {
+        int max = defaultMaxKeys(keyType);
+        if (maxKeys < 3 || maxKeys > max) {
+            throw new IllegalArgumentException("maxKeys must be in [3, " + max + "], was " + maxKeys);
+        }
+    }
+
     public static BPlusTree create(Pager pager, KeyType keyType) throws IOException {
         return create(pager, keyType, defaultMaxKeys(keyType));
     }
 
     public static BPlusTree create(Pager pager, KeyType keyType, int maxKeys) throws IOException {
+        validateMaxKeys(keyType, maxKeys);
         int metaId = pager.allocate();  // 0
         int rootId = pager.allocate();  // 1
         Page root = pager.get(rootId);
@@ -121,6 +126,11 @@ public class BPlusTree {
 
     // ---- insert ----
 
+    /**
+     * Precondition: the composite key must be unique (value ‖ docId); re-inserting an
+     * existing key creates a duplicate and breaks tree invariants — callers must delete
+     * before re-inserting.
+     */
     public void insert(byte[] key) throws IOException {
         int rid = rootId();
         Split split = insertInto(rid, key);
@@ -258,6 +268,48 @@ public class BPlusTree {
                 throw new IllegalStateException("leaves at differing depths: " + leafDepths);
             }
         }
+        validateLeafChain(leafDepths.size());
+    }
+
+    /** Walk the leaf sibling chain from the leftmost leaf: must visit exactly
+     *  {@code expectedLeaves} leaves once each, in globally ascending key order,
+     *  terminating at the null sentinel (0). */
+    private void validateLeafChain(int expectedLeaves) throws IOException {
+        int leafId = leftmostLeaf();
+        byte[] prevKey = null;
+        int visited = 0;
+        while (leafId != 0) {
+            Page leaf = pager.get(leafId);
+            if (!leaf.isLeaf()) {
+                throw new IllegalStateException("sibling chain reached non-leaf page " + leafId);
+            }
+            int n = leaf.numKeys();
+            for (int i = 0; i < n; i++) {
+                byte[] k = leaf.leafKey(i, keySize);
+                if (prevKey != null && KeyCodec.compare(keyType, prevKey, k) >= 0) {
+                    throw new IllegalStateException("leaf-chain keys not strictly ascending across siblings");
+                }
+                prevKey = k;
+            }
+            visited++;
+            if (visited > expectedLeaves) {
+                throw new IllegalStateException("leaf sibling chain has a cycle or extra leaves");
+            }
+            leafId = leaf.rightSibling();
+        }
+        if (visited != expectedLeaves) {
+            throw new IllegalStateException("leaf chain visited " + visited + " of " + expectedLeaves + " leaves");
+        }
+    }
+
+    private int leftmostLeaf() throws IOException {
+        int pid = rootId();
+        Page p = pager.get(pid);
+        while (!p.isLeaf()) {
+            pid = p.child(0, keySize);
+            p = pager.get(pid);
+        }
+        return pid;
     }
 
     private void validateNode(int pageId, int depth, byte[] lo, byte[] hi, List<Integer> leafDepths) throws IOException {

@@ -87,4 +87,22 @@ class BPlusTreeValidateTest {
             }
         }
     }
+
+    @Test
+    void validateDetectsBrokenLeafChain(@TempDir Path dir) throws Exception {
+        try (Pager pager = new Pager(dir.resolve("chain.idx").toFile())) {
+            BPlusTree tree = BPlusTree.create(pager, KeyType.INTEGER, 4);
+            for (int v = 1; v <= 20; v++) tree.insert(KeyCodec.encode(KeyType.INTEGER, v, 0)); // forces several leaves
+            tree.validate(); // intact chain is fine
+            // corrupt: prematurely terminate the leftmost leaf's sibling link
+            int keySize = KeyCodec.keySize(KeyType.INTEGER);
+            int pid = pager.get(Pager.META_PAGE_ID).metaRoot();
+            Page node = pager.get(pid);
+            while (!node.isLeaf()) { pid = node.child(0, keySize); node = pager.get(pid); }
+            node.setRightSibling(0);
+            pager.markDirty(pid);
+            org.assertj.core.api.Assertions.assertThatThrownBy(tree::validate)
+                .isInstanceOf(IllegalStateException.class);
+        }
+    }
 }
