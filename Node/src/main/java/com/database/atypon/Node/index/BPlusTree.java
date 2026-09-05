@@ -29,7 +29,10 @@ public class BPlusTree {
     }
 
     private BPlusTree(Pager pager, KeyType keyType, int maxKeys) {
-        if (maxKeys < 3) throw new IllegalArgumentException("maxKeys must be >= 3");
+        int max = defaultMaxKeys(keyType);
+        if (maxKeys < 3 || maxKeys > max) {
+            throw new IllegalArgumentException("maxKeys must be in [3, " + max + "], was " + maxKeys);
+        }
         this.pager = pager;
         this.keyType = keyType;
         this.keySize = KeyCodec.keySize(keyType);
