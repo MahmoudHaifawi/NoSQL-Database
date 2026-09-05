@@ -341,4 +341,71 @@ public class BPlusTree {
     private byte[] keyAt(Page p, int i) {
         return p.isLeaf() ? p.leafKey(i, keySize) : p.internalKey(i, keySize);
     }
+
+    // ---- query ----
+
+    public enum Op { EQ, GT, GTE, LT, LTE, BETWEEN }
+
+    private static final int MIN_DOC = Integer.MIN_VALUE;
+    private static final int MAX_DOC = Integer.MAX_VALUE;
+
+    /** Composite keys within [loKey, hiKey] (honoring inclusivity), ascending. Null bound = unbounded. */
+    public List<byte[]> scanRange(byte[] loKey, boolean loInclusive, byte[] hiKey, boolean hiInclusive) throws IOException {
+        List<byte[]> out = new ArrayList<>();
+        int leafId = (loKey == null) ? leftmostLeaf() : findLeaf(loKey);
+        while (leafId != 0) {
+            Page leaf = pager.get(leafId);
+            int n = leaf.numKeys();
+            for (int i = 0; i < n; i++) {
+                byte[] k = leaf.leafKey(i, keySize);
+                if (loKey != null) {
+                    int c = KeyCodec.compare(keyType, k, loKey);
+                    if (c < 0 || (c == 0 && !loInclusive)) continue;
+                }
+                if (hiKey != null) {
+                    int c = KeyCodec.compare(keyType, k, hiKey);
+                    if (c > 0 || (c == 0 && !hiInclusive)) return out; // ascending: nothing more matches
+                }
+                out.add(k);
+            }
+            leafId = leaf.rightSibling();
+        }
+        return out;
+    }
+
+    /** Translate an operator query to a composite range and return the matching keys ascending. */
+    public List<byte[]> query(Op op, Object value, Object high) throws IOException {
+        switch (op) {
+            case EQ:
+                return scanRange(key(value, MIN_DOC), true, key(value, MAX_DOC), true);
+            case GT:
+                return scanRange(key(value, MAX_DOC), false, null, true);
+            case GTE:
+                return scanRange(key(value, MIN_DOC), true, null, true);
+            case LT:
+                return scanRange(null, true, key(value, MIN_DOC), false);
+            case LTE:
+                return scanRange(null, true, key(value, MAX_DOC), true);
+            case BETWEEN:
+                return scanRange(key(value, MIN_DOC), true, key(high, MAX_DOC), true);
+            default:
+                throw new IllegalArgumentException("unknown op: " + op);
+        }
+    }
+
+    /** DocIds for a query, ordered ASC/DESC over the field, then offset/limit paginated (limit < 0 = unlimited). */
+    public List<Integer> queryDocIds(Op op, Object value, Object high, boolean ascending, int offset, int limit) throws IOException {
+        List<byte[]> keys = query(op, value, high);
+        if (!ascending) java.util.Collections.reverse(keys);
+        List<Integer> ids = new ArrayList<>();
+        for (int i = Math.max(0, offset); i < keys.size(); i++) {
+            if (limit >= 0 && ids.size() >= limit) break;
+            ids.add(KeyCodec.decodeDocId(keyType, keys.get(i)));
+        }
+        return ids;
+    }
+
+    private byte[] key(Object value, int docId) {
+        return KeyCodec.encode(keyType, value, docId);
+    }
 }
