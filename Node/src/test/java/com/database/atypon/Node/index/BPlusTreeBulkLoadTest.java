@@ -77,4 +77,14 @@ class BPlusTreeBulkLoadTest {
                     .isEqualTo(java.util.List.of(3, 4, 5, 6, 7, 8, 9));
         }
     }
+
+    @Test
+    void bulkLoadRejectsNonEmptyPager(@TempDir Path dir) throws Exception {
+        try (Pager pager = new Pager(dir.resolve("nonempty.idx").toFile())) {
+            BPlusTree.create(pager, KeyType.INTEGER, 4); // makes the pager non-empty (2 pages)
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> BPlusTree.bulkLoad(pager, KeyType.INTEGER, sortedIntKeys(5), 4))
+                .isInstanceOf(IllegalStateException.class);
+        }
+    }
 }

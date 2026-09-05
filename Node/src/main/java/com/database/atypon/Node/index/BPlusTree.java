@@ -346,6 +346,10 @@ public class BPlusTree {
 
     public enum Op { EQ, GT, GTE, LT, LTE, BETWEEN }
 
+    // DocId sentinels for value-range queries. Correctness of GT/LT/EQ relies on every real
+    // docId being strictly inside (MIN_VALUE, MAX_VALUE): docIds are non-negative sequential
+    // ids (schema nextId), so they never collide with these sentinels. Do NOT introduce
+    // negative or Integer.MAX_VALUE docIds.
     private static final int MIN_DOC = Integer.MIN_VALUE;
     private static final int MAX_DOC = Integer.MAX_VALUE;
 
@@ -418,6 +422,9 @@ public class BPlusTree {
     /** Build a B+-tree bottom-up from pre-sorted, unique composite keys into an empty pager. */
     public static BPlusTree bulkLoad(Pager pager, KeyType keyType, List<byte[]> sortedKeys, int maxKeys) throws IOException {
         validateMaxKeys(keyType, maxKeys);
+        if (pager.pageCountOnDisk() != 0) {
+            throw new IllegalStateException("bulkLoad requires an empty pager (found " + pager.pageCountOnDisk() + " pages)");
+        }
         int keySize = KeyCodec.keySize(keyType);
         int metaId = pager.allocate(); // 0
 
