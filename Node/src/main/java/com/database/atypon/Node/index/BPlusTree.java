@@ -458,8 +458,19 @@ public class BPlusTree {
             List<byte[]> parentFirstKeys = new ArrayList<>();
             List<Integer> parentPageIds = new ArrayList<>();
             int count = pageIds.size();
-            for (int i = 0; i < count; i += (maxKeys + 1)) {
-                int end = Math.min(i + (maxKeys + 1), count);
+            int childrenPerNode = maxKeys + 1;
+            int i = 0;
+            while (i < count) {
+                int remaining = count - i;
+                int take;
+                if (remaining <= childrenPerNode) {
+                    take = remaining;
+                } else if (remaining - childrenPerNode == 1) {
+                    take = childrenPerNode - 1; // leave >= 2 children for the next node (no single-child node)
+                } else {
+                    take = childrenPerNode;
+                }
+                int end = i + take;
                 int nodeId = pager.allocate();
                 Page node = pager.get(nodeId);
                 node.initInternal();
@@ -474,6 +485,7 @@ public class BPlusTree {
                 pager.markDirty(nodeId);
                 parentFirstKeys.add(firstKeys.get(i).clone());
                 parentPageIds.add(nodeId);
+                i = end;
             }
             firstKeys = parentFirstKeys;
             pageIds = parentPageIds;

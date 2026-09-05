@@ -64,4 +64,17 @@ class BPlusTreeBulkLoadTest {
             }
         }
     }
+
+    @Test
+    void bulkLoadTrailingRemainderProducesValidTree(@TempDir Path dir) throws Exception {
+        try (Pager pager = new Pager(dir.resolve("blr.idx").toFile())) {
+            BPlusTree tree = BPlusTree.bulkLoad(pager, KeyType.INTEGER, sortedIntKeys(13), 3);
+            tree.validate();
+            for (int v = 0; v < 13; v++) {
+                assertThat(tree.contains(KeyCodec.encode(KeyType.INTEGER, v, v))).as("v=" + v).isTrue();
+            }
+            assertThat(tree.queryDocIds(BPlusTree.Op.BETWEEN, 3, 9, true, 0, -1))
+                    .isEqualTo(java.util.List.of(3, 4, 5, 6, 7, 8, 9));
+        }
+    }
 }
