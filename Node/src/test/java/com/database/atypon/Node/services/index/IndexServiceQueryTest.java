@@ -68,4 +68,12 @@ class IndexServiceQueryTest {
         assertThat(svc.query("shop", "users", "Age", BPlusTree.Op.GTE, 0, null, false, 0, -1)).containsExactly(2, 0, 1);
         assertThat(svc.query("shop", "users", "Age", BPlusTree.Op.GTE, 0, null, true, 1, 1)).containsExactly(0);
     }
+
+    @Test
+    void queryRejectsNullValue(@TempDir Path root) throws Exception {
+        IndexService svc = usersIndexedByAge(root);
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                () -> svc.query("shop", "users", "Age", com.database.atypon.Node.index.BPlusTree.Op.EQ, null, null, true, 0, -1))
+            .isInstanceOf(IllegalArgumentException.class);
+    }
 }

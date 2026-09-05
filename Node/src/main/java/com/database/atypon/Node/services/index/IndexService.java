@@ -119,7 +119,12 @@ public class IndexService {
         }
     }
 
-    /** Maintain every index defined on this schema after a document is written. */
+    /**
+     * Maintain every index defined on this schema after a document is written.
+     * Not atomic across multiple indexes: if a later field's insert fails, earlier indexes are
+     * already updated; since indexes are derived from records, a partial failure is recoverable
+     * by dropping and recreating the affected index.
+     */
     public void onInsert(String db, String schema, int docId, JSONObject doc) throws IOException {
         for (String field : listIndexes(db, schema)) {
             if (!doc.has(field)) {
@@ -128,14 +133,14 @@ public class IndexService {
             try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
                 BPlusTree tree = BPlusTree.open(pager);
                 KeyType keyType = indexKeyType(pager);
-                tree.insert(KeyCodec.encode(keyType, doc.get(field), docId));
+                tree.insert(KeyCodec.encode(keyType, coerce(keyType, doc.get(field)), docId));
                 tree.flush();
             }
         }
     }
 
     private KeyType indexKeyType(Pager pager) throws IOException {
-        com.database.atypon.Node.index.Page meta = pager.get(Pager.META_PAGE_ID);
+        Page meta = pager.get(Pager.META_PAGE_ID);
         if (!meta.hasValidMagic()) {
             throw new IllegalStateException("corrupt or empty index file");
         }
@@ -144,6 +149,9 @@ public class IndexService {
 
     /** Coerce a raw request value (JSON number/String/Boolean) to the index's key type. */
     private Object coerce(KeyType keyType, Object raw) {
+        if (raw == null) {
+            throw new IllegalArgumentException("query value must not be null");
+        }
         switch (keyType) {
             case INTEGER: return (raw instanceof Number) ? ((Number) raw).intValue() : Integer.parseInt(raw.toString());
             case DOUBLE:  return (raw instanceof Number) ? ((Number) raw).doubleValue() : Double.parseDouble(raw.toString());
