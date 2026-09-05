@@ -408,4 +408,85 @@ public class BPlusTree {
     private byte[] key(Object value, int docId) {
         return KeyCodec.encode(keyType, value, docId);
     }
+
+    // ---- bulk load ----
+
+    public static BPlusTree bulkLoad(Pager pager, KeyType keyType, List<byte[]> sortedKeys) throws IOException {
+        return bulkLoad(pager, keyType, sortedKeys, defaultMaxKeys(keyType));
+    }
+
+    /** Build a B+-tree bottom-up from pre-sorted, unique composite keys into an empty pager. */
+    public static BPlusTree bulkLoad(Pager pager, KeyType keyType, List<byte[]> sortedKeys, int maxKeys) throws IOException {
+        validateMaxKeys(keyType, maxKeys);
+        int keySize = KeyCodec.keySize(keyType);
+        int metaId = pager.allocate(); // 0
+
+        if (sortedKeys.isEmpty()) {
+            int rootId = pager.allocate();
+            Page root = pager.get(rootId);
+            root.initLeaf();
+            pager.markDirty(rootId);
+            writeMeta(pager, metaId, keyType, rootId);
+            pager.flushAll();
+            return new BPlusTree(pager, keyType, maxKeys);
+        }
+
+        // Level 0: pack leaves, linking siblings.
+        List<byte[]> firstKeys = new ArrayList<>();
+        List<Integer> pageIds = new ArrayList<>();
+        int prevLeafId = 0;
+        for (int i = 0; i < sortedKeys.size(); i += maxKeys) {
+            int end = Math.min(i + maxKeys, sortedKeys.size());
+            int leafId = pager.allocate();
+            Page leaf = pager.get(leafId);
+            leaf.initLeaf();
+            for (int j = i; j < end; j++) leaf.setLeafKey(j - i, sortedKeys.get(j));
+            leaf.setNumKeys(end - i);
+            pager.markDirty(leafId);
+            if (prevLeafId != 0) {
+                Page prev = pager.get(prevLeafId);
+                prev.setRightSibling(leafId);
+                pager.markDirty(prevLeafId);
+            }
+            prevLeafId = leafId;
+            firstKeys.add(sortedKeys.get(i).clone());
+            pageIds.add(leafId);
+        }
+
+        // Build internal levels until a single root remains.
+        while (pageIds.size() > 1) {
+            List<byte[]> parentFirstKeys = new ArrayList<>();
+            List<Integer> parentPageIds = new ArrayList<>();
+            int count = pageIds.size();
+            for (int i = 0; i < count; i += (maxKeys + 1)) {
+                int end = Math.min(i + (maxKeys + 1), count);
+                int nodeId = pager.allocate();
+                Page node = pager.get(nodeId);
+                node.initInternal();
+                node.setChild(0, pageIds.get(i), keySize);
+                int seps = 0;
+                for (int j = i + 1; j < end; j++) {
+                    node.setInternalKey(seps, firstKeys.get(j), keySize);
+                    node.setChild(seps + 1, pageIds.get(j), keySize);
+                    seps++;
+                }
+                node.setNumKeys(seps);
+                pager.markDirty(nodeId);
+                parentFirstKeys.add(firstKeys.get(i).clone());
+                parentPageIds.add(nodeId);
+            }
+            firstKeys = parentFirstKeys;
+            pageIds = parentPageIds;
+        }
+
+        writeMeta(pager, metaId, keyType, pageIds.get(0));
+        pager.flushAll();
+        return new BPlusTree(pager, keyType, maxKeys);
+    }
+
+    private static void writeMeta(Pager pager, int metaId, KeyType keyType, int rootId) throws IOException {
+        Page meta = pager.get(metaId);
+        meta.initMeta(keyType, rootId, pager.pageCountOnDisk());
+        pager.markDirty(metaId);
+    }
 }
