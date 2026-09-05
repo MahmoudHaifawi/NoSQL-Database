@@ -3,7 +3,6 @@ package com.database.atypon.Node.index;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -70,6 +69,15 @@ class BPlusTreeTest {
             Collections.shuffle(vs, new java.util.Random(42));
             for (int v : vs) tree.insert(intKey(v));
             for (int v = 1; v <= 40; v++) assertThat(tree.contains(intKey(v))).as("v=" + v).isTrue();
+        }
+    }
+
+    @Test
+    void rejectsMaxKeysOverPageCapacity(@TempDir Path dir) throws Exception {
+        try (Pager pager = new Pager(dir.resolve("cap.idx").toFile())) {
+            org.assertj.core.api.Assertions.assertThatThrownBy(
+                    () -> BPlusTree.create(pager, KeyType.INTEGER, 1000))
+                .isInstanceOf(IllegalArgumentException.class);
         }
     }
 }
