@@ -246,4 +246,47 @@ public class BPlusTree {
         }
         node.setNumKeys(keys.size());
     }
+
+    // ---- validate ----
+
+    /** Verify B+-tree structural invariants; throws IllegalStateException on any violation. */
+    public void validate() throws IOException {
+        List<Integer> leafDepths = new ArrayList<>();
+        validateNode(rootId(), 0, null, null, leafDepths);
+        for (int d : leafDepths) {
+            if (d != leafDepths.get(0)) {
+                throw new IllegalStateException("leaves at differing depths: " + leafDepths);
+            }
+        }
+    }
+
+    private void validateNode(int pageId, int depth, byte[] lo, byte[] hi, List<Integer> leafDepths) throws IOException {
+        Page p = pager.get(pageId);
+        int n = p.numKeys();
+        for (int i = 0; i < n; i++) {
+            byte[] k = keyAt(p, i);
+            if (i > 0 && KeyCodec.compare(keyType, keyAt(p, i - 1), k) >= 0) {
+                throw new IllegalStateException("keys not strictly ascending in page " + pageId);
+            }
+            if (lo != null && KeyCodec.compare(keyType, k, lo) < 0) {
+                throw new IllegalStateException("key below lower separator bound in page " + pageId);
+            }
+            if (hi != null && KeyCodec.compare(keyType, k, hi) >= 0) {
+                throw new IllegalStateException("key at/above upper separator bound in page " + pageId);
+            }
+        }
+        if (p.isLeaf()) {
+            leafDepths.add(depth);
+            return;
+        }
+        for (int i = 0; i <= n; i++) {
+            byte[] childLo = (i == 0) ? lo : p.internalKey(i - 1, keySize);
+            byte[] childHi = (i == n) ? hi : p.internalKey(i, keySize);
+            validateNode(p.child(i, keySize), depth + 1, childLo, childHi, leafDepths);
+        }
+    }
+
+    private byte[] keyAt(Page p, int i) {
+        return p.isLeaf() ? p.leafKey(i, keySize) : p.internalKey(i, keySize);
+    }
 }
