@@ -62,6 +62,20 @@ public class IndexService {
             throw new IllegalStateException("index already exists on " + schema + "." + field);
         }
         KeyType keyType = fieldKeyType(db, schema, field);
+        Path idx = indexFile(db, schema, field);
+        try {
+            List<byte[]> keys = collectSortedKeys(db, schema, field, keyType);
+            Files.createDirectories(indexDir(db));
+            try (Pager pager = new Pager(idx.toFile())) {
+                BPlusTree.bulkLoad(pager, keyType, keys);
+            }
+        } catch (RuntimeException | IOException e) {
+            Files.deleteIfExists(idx); // never leave a poisoned/partial index file behind
+            throw e;
+        }
+    }
+
+    private List<byte[]> collectSortedKeys(String db, String schema, String field, KeyType keyType) throws IOException {
         List<byte[]> keys = new ArrayList<>();
         Path recs = recordsDir(db, schema);
         if (Files.isDirectory(recs)) {
@@ -71,16 +85,13 @@ public class IndexService {
                     int docId = Integer.parseInt(name.substring(0, name.length() - ".json".length()));
                     JSONObject doc = new JSONObject(Files.readString(rec));
                     if (doc.has(field)) {
-                        keys.add(KeyCodec.encode(keyType, doc.get(field), docId));
+                        keys.add(KeyCodec.encode(keyType, coerce(keyType, doc.get(field)), docId));
                     }
                 }
             }
         }
         keys.sort((a, b) -> KeyCodec.compare(keyType, a, b));
-        Files.createDirectories(indexDir(db));
-        try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
-            BPlusTree.bulkLoad(pager, keyType, keys);
-        }
+        return keys;
     }
 
     public List<String> listIndexes(String db, String schema) throws IOException {
