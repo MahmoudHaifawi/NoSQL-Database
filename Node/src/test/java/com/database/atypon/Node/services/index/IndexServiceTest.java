@@ -71,4 +71,17 @@ class IndexServiceTest {
         usersFixture(root);
         assertThat(new IndexService(root).listIndexes("shop", "users")).isEmpty();
     }
+
+    @Test
+    void createIndexLeavesNoPhantomIndexOnFailure(@TempDir Path root) throws Exception {
+        usersFixture(root);
+        // a stray non-numeric record filename makes docId parsing throw mid-build
+        Files.writeString(root.resolve("shop").resolve("users-records").resolve("oops.json"),
+                new JSONObject().put("Name", "X").put("Age", 1).toString());
+        IndexService svc = new IndexService(root);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> svc.createIndex("shop", "users", "Age"))
+                .isInstanceOf(NumberFormatException.class);
+        // the failed build must not leave a phantom .idx that would block retries
+        assertThat(svc.indexExists("shop", "users", "Age")).isFalse();
+    }
 }
