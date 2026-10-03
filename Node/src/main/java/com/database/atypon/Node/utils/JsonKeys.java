@@ -9,4 +9,5 @@ public final class JsonKeys {
     public static final String SCHEMA = "schema";
     public static final String SCHEMA_NAME = "schemaName";
     public static final String NODE = "Node";
+    public static final String VERSION = "_version";
 }

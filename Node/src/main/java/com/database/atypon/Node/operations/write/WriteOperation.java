@@ -84,6 +84,7 @@ public class WriteOperation {
                         String.valueOf(nextId));
                 File documentFile = new File(pathToDocument);
                 documentFile.createNewFile();
+                documentJSON.put(JsonKeys.VERSION, 1); // reserved, server-controlled
                 FileWriter fileWriter = new FileWriter(documentFile, documentJSON.toString());
                 fileWriter.write();
                 try {

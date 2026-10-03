@@ -62,6 +62,15 @@ class WriteOperationIndexHookTest {
     }
 
     @Test
+    void createStampsVersionOne() throws Exception {
+        WriteOperation writeOp = new WriteOperation(indexManagerMock);
+        writeOp.createDocument("hookdb", "users", new JSONObject().put("Age", 42));
+
+        String written = Files.readString(Paths.get("./data/hookdb/users-records/0.json"));
+        assertThat(new JSONObject(written).getInt("_version")).isEqualTo(1);
+    }
+
+    @Test
     void indexMaintenanceFailureDoesNotFailTheWrite() throws Exception {
         doThrow(new RuntimeException("boom"))
                 .when(indexManagerMock).onInsert(any(), any(), anyInt(), any());
