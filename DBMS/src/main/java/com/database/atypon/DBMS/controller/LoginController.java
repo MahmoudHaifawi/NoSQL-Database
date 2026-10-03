@@ -18,10 +18,18 @@ import javax.servlet.http.HttpServletRequest;
 @AllArgsConstructor
 public class LoginController {
 
+    private static final org.slf4j.Logger log =
+            org.slf4j.LoggerFactory.getLogger(LoginController.class);
+
     private final AuthenticationService authenticationService;
 
     @GetMapping("/login")
     public String login(Model model){
+        // login.html binds to a "user" command object (th:object="${user}"); without it the
+        // form field processors fail to render. Seed an empty one for the GET request.
+        if (!model.containsAttribute("user")) {
+            model.addAttribute("user", new User());
+        }
         return "login";
     }
 
@@ -34,6 +42,7 @@ public class LoginController {
             request.getSession().setAttribute("nodeURL", nodeURL);
             return "redirect:/dashboard";
         } catch (Exception e) {
+            log.warn("Login failed for user '{}': {}", user.getUsername(), e.getMessage());
             model.addAttribute("error", e.getMessage());
             return "login";
         }

@@ -10,6 +10,7 @@
 </head>
 <body>
 
+    <p th:if="${error}" class="alert alert-danger m-5" th:text="${error}"></p>
     <form action="#" th:action="@{/login}" th:object="${user}" method="post" class="p-5 m-auto">
         <div class="form-outline mb-4 w-50">
             <input type="text" id="username" class="form-control" th:field="*{username}" name="username"/>

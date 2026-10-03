@@ -9,7 +9,13 @@ public class
 
 ConnectionRequest {
 
-    private static String boostStrappingNodeURL = "http://localhost:8079";
+    /**
+     * Base URL of the bootstrapping node. Defaults to the local-development address and can be
+     * overridden with the {@code BOOTSTRAP_URL} environment variable (e.g. inside Docker, where
+     * the bootstrapping node is reachable by its service name: {@code http://bootstrappingnode:8080}).
+     */
+    private static final String boostStrappingNodeURL =
+            System.getenv().getOrDefault("BOOTSTRAP_URL", "http://localhost:8079");
 
     public static String createNewUser(User user){
         try{
@@ -38,8 +44,10 @@ ConnectionRequest {
         RestTemplate restTemplate = new RestTemplate();
         String url = boostStrappingNodeURL + "/getUserNode";
         try{
-            String nodePort = (restTemplate.postForObject(url, user, String.class));
-            return "http://localhost:" + nodePort;
+            // The bootstrapping node returns the node's full URL (http://host:port). Using it as-is
+            // keeps gateway addressing consistent with the host names the cluster resolves peers by,
+            // whether that host is "localhost" (local run) or a container name (Docker).
+            return restTemplate.postForObject(url, user, String.class);
         }catch (Exception e){
             System.out.println(e.getMessage());
             throw new Exception("User not found");

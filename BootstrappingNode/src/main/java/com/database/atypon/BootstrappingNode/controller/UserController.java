@@ -47,7 +47,7 @@ public class UserController {
             return null;
         if(user.getUsername() == null || user.getUsername().isEmpty())
             return null;
-        return UsersLoadBalancer.getCurrentUserNode(3).getPort();
+        return UsersLoadBalancer.getCurrentUserNode(3).getURL();
     }
     @GetMapping("/test")
     public String test(){
