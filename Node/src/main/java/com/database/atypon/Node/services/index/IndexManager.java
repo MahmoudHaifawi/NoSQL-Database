@@ -59,6 +59,23 @@ public class IndexManager {
         }
     }
 
+    /**
+     * Rebuilds every index on the schema from the current records. Called after a document update,
+     * where an indexed field's value may have changed and in-place key deletion does not yet exist
+     * (that is M3). Runs under the write lock so readers never see a half-rebuilt index.
+     */
+    public void onUpdate(String db, String schema) throws IOException {
+        lock.writeLock().lock();
+        try {
+            for (String field : indexService.listIndexes(db, schema)) {
+                indexService.dropIndex(db, schema, field);
+                indexService.createIndex(db, schema, field);
+            }
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     public List<String> listIndexes(String db, String schema) throws IOException {
         lock.readLock().lock();
         try {
