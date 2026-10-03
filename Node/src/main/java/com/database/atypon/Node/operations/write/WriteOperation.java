@@ -1,5 +1,6 @@
 package com.database.atypon.Node.operations.write;
 
+import com.database.atypon.Node.services.index.IndexManager;
 import com.database.atypon.Node.utils.JsonKeys;
 import com.database.atypon.Node.utils.PathBuilder;
 import com.database.atypon.Node.utils.Validators;
@@ -15,6 +16,13 @@ import java.io.File;
 @Component
 public class WriteOperation {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(WriteOperation.class);
+
+    private final IndexManager indexManager;
+
+    public WriteOperation(IndexManager indexManager) {
+        this.indexManager = indexManager;
+    }
 
     public Response createSchema(String database, String schemaName, JSONObject schemaDetails) {
         if (!new File(PathBuilder.getPathToDatabase(database)).exists())
@@ -78,6 +86,12 @@ public class WriteOperation {
                 documentFile.createNewFile();
                 FileWriter fileWriter = new FileWriter(documentFile, documentJSON.toString());
                 fileWriter.write();
+                try {
+                    indexManager.onInsert(database, schema, nextId, documentJSON);
+                } catch (Exception indexError) {
+                    // indexes are derived/rebuildable; don't fail the write on a maintenance error
+                    log.error("index maintenance failed for {}.{} doc {}", database, schema, nextId, indexError);
+                }
                 return new Response(ResponseType.SUCCESS, "Document created successfully");
             } catch (Exception e) {
                 return new Response(ResponseType.ERROR, e.getMessage());
