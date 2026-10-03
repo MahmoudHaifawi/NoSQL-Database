@@ -85,5 +85,34 @@
             </div>
         </div>
     </div>
+    <div class="d-flex justify-content-around p-5">
+        <!--   Insert Document Form     -->
+        <div class="card border border-primary p-5 align-text-cent" style="width: 50rem;">
+            <div class="card-body">
+                <h5 class="card-title">Insert a document</h5>
+                <form method="post" th:action="@{/createDocument}">
+                    <label class="form-label mt-2" for="docDbName">Database Name</label>
+                    <input type="text" id="docDbName" class="form-control" name="databaseName"
+                           placeholder="Database Name"/>
+
+                    <label class="form-label mt-2" for="docSchemaName">Schema Name</label>
+                    <input type="text" id="docSchemaName" class="form-control" name="schemaName"
+                           placeholder="Schema Name"/>
+
+                    <label class="form-label mt-2" for="documentBody">Document (JSON)</label>
+                    <textarea class="form-control" id="documentBody" cols="25" rows="8" name="document"
+                    placeholder='Values must match the schema types, e.g.
+        {
+        "name" : "Keyboard",
+        "price" : 30,
+        "inStock" : true
+        }'></textarea>
+                    <button type="submit" class="btn btn-primary btn-block mt-2">Submit</button>
+                    <p th:if="${documentMessage}" th:text="${documentMessage}" style="color: green"></p>
+                    <p th:if="${documentError}" th:text="${documentError}" style="color: red"></p>
+                </form>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
