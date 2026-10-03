@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Update Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body class="bg-light">
+<nav class="navbar navbar-dark bg-dark">
+    <span class="navbar-brand mb-0 h1">Update Document</span>
+    <a class="btn btn-outline-light btn-sm" th:href="@{/dashboard}">&larr; Dashboard</a>
+</nav>
+<div class="container-fluid py-4">
+    <div class="card border-info mb-4" style="max-width:40rem">
+        <div class="card-header bg-info text-white">Fetch a document to edit</div>
+        <div class="card-body">
+            <form method="post" th:action="@{/update/fetch}">
+                <div class="form-row">
+                    <div class="form-group col"><label>Database</label>
+                        <input class="form-control" name="database" th:value="${f_database}" required/></div>
+                    <div class="form-group col"><label>Schema</label>
+                        <input class="form-control" name="schema" th:value="${f_schema}" required/></div>
+                    <div class="form-group col"><label>Id</label>
+                        <input class="form-control" name="id" th:value="${f_id}" required/></div>
+                </div>
+                <button type="submit" class="btn btn-info btn-block">Fetch</button>
+            </form>
+        </div>
+    </div>
+
+    <p th:if="${updateMessage}" class="alert alert-success" th:text="${updateMessage}"></p>
+    <p th:if="${updateError}" class="alert alert-danger" th:text="${updateError}"></p>
+
+    <div class="card border-success" style="max-width:40rem" th:if="${loaded}">
+        <div class="card-header bg-success text-white">
+            Edit &mdash; version <span class="badge badge-light" th:text="${version}"></span>
+        </div>
+        <div class="card-body">
+            <form method="post" th:action="@{/update/save}">
+                <input type="hidden" name="database" th:value="${f_database}"/>
+                <input type="hidden" name="schema" th:value="${f_schema}"/>
+                <input type="hidden" name="id" th:value="${f_id}"/>
+                <input type="hidden" name="version" th:value="${version}"/>
+                <label>Document (JSON)</label>
+                <textarea class="form-control" name="document" rows="10" th:text="${docJson}"></textarea>
+                <button type="submit" class="btn btn-success btn-block mt-2">Save</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

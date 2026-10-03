@@ -17,6 +17,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .addPathPatterns(
                         "/dashboard",
                         "/read", "/read/**",
+                        "/update", "/update/**",
                         "/index", "/index/**",
                         "/createSchema",
                         "/createDocument",
