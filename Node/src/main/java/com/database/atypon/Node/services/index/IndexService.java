@@ -144,8 +144,11 @@ public class IndexService {
             try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
                 BPlusTree tree = BPlusTree.open(pager);
                 KeyType keyType = indexKeyType(pager);
-                tree.insert(KeyCodec.encode(keyType, coerce(keyType, doc.get(field)), docId));
-                tree.flush();
+                byte[] key = KeyCodec.encode(keyType, coerce(keyType, doc.get(field)), docId);
+                if (!tree.contains(key)) {
+                    tree.insert(key);
+                    tree.flush();
+                }
             }
         }
     }
