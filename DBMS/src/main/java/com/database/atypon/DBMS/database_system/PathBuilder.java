@@ -19,4 +19,12 @@ public class PathBuilder {
                 schemaName + "&id=" + id;
     }
 
+    public static String buildCreateIndexPath(String database, String schema, String field){
+        return "/admin/index/create?" + "database=" + database + "&schema=" + schema + "&field=" + field;
+    }
+
+    public static String buildIndexQueryPath(){
+        return "/user/index/query";
+    }
+
 }
