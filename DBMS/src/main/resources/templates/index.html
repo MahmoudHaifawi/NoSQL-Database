@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Secondary Index</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
+          integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-dark">
+    <span class="navbar-brand mb-0 h1">B+-Tree Secondary Index</span>
+    <a class="btn btn-outline-light btn-sm" th:href="@{/dashboard}">&larr; Dashboard</a>
+</nav>
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <!-- Create index (admin) -->
+        <div class="col-md-5">
+            <div class="card border-primary mb-4">
+                <div class="card-header bg-primary text-white">Create Index <small>(admin)</small></div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Builds a disk-paged B+-tree on <code>schema.field</code> via a sorted bulk-load of the
+                        existing records, enabling equality, range, ORDER BY and pagination queries on that field.
+                    </p>
+                    <p th:if="${indexMessage}" class="alert alert-success py-2" th:text="${indexMessage}"></p>
+                    <p th:if="${indexError}" class="alert alert-danger py-2" th:text="${indexError}"></p>
+                    <form method="post" th:action="@{/index/create}">
+                        <div class="form-group">
+                            <label>Database</label>
+                            <input type="text" class="form-control" name="database" required/>
+                        </div>
+                        <div class="form-group">
+                            <label>Schema</label>
+                            <input type="text" class="form-control" name="schema" required/>
+                        </div>
+                        <div class="form-group">
+                            <label>Field</label>
+                            <input type="text" class="form-control" name="field" required/>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-block">Create Index</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Query -->
+        <div class="col-md-7">
+            <div class="card border-success mb-4">
+                <div class="card-header bg-success text-white">Query Index</div>
+                <div class="card-body">
+                    <form method="post" th:action="@{/index/query}">
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Database</label>
+                                <input type="text" class="form-control" name="database" th:value="${f_database}" required/>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Schema</label>
+                                <input type="text" class="form-control" name="schema" th:value="${f_schema}" required/>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Field</label>
+                                <input type="text" class="form-control" name="field" th:value="${f_field}" required/>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Operator</label>
+                                <select class="form-control" name="op" id="op">
+                                    <option th:each="o : ${ {'EQ','GT','GTE','LT','LTE','BETWEEN'} }"
+                                            th:value="${o}" th:text="${o}" th:selected="${o == f_op}"></option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Value</label>
+                                <input type="text" class="form-control" name="value" th:value="${f_value}"/>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>High <small class="text-muted">(BETWEEN)</small></label>
+                                <input type="text" class="form-control" name="high" th:value="${f_high}"/>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group col-md-4">
+                                <label>Order</label>
+                                <select class="form-control" name="order">
+                                    <option value="ASC" th:selected="${f_order == null or f_order == 'ASC'}">ASC</option>
+                                    <option value="DESC" th:selected="${f_order == 'DESC'}">DESC</option>
+                                </select>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Limit</label>
+                                <input type="number" class="form-control" name="limit" th:value="${f_limit}" placeholder="all"/>
+                            </div>
+                            <div class="form-group col-md-4">
+                                <label>Offset</label>
+                                <input type="number" class="form-control" name="offset" th:value="${f_offset}" placeholder="0"/>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-block">Run Query</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results -->
+    <div class="card" th:if="${queryError != null or results != null}">
+        <div class="card-header">
+            Results
+            <span class="badge badge-secondary" th:if="${results != null}" th:text="${resultCount} + ' match(es)'"></span>
+        </div>
+        <div class="card-body">
+            <p th:if="${queryError}" class="alert alert-danger py-2" th:text="${queryError}"></p>
+            <p th:if="${results != null and resultCount == 0}" class="text-muted">No documents matched.</p>
+            <table class="table table-sm table-striped" th:if="${results != null and resultCount > 0}">
+                <thead>
+                <tr><th style="width:90px">Doc&nbsp;ID</th><th>Document</th></tr>
+                </thead>
+                <tbody>
+                <tr th:each="entry : ${results}">
+                    <td><span class="badge badge-dark" th:text="${entry.key}"></span></td>
+                    <td><pre class="mb-0" style="white-space:pre-wrap" th:text="${entry.value}"></pre></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
