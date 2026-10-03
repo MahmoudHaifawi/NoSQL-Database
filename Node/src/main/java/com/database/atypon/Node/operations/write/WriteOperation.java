@@ -101,6 +101,65 @@ public class WriteOperation {
         }
     }
 
+    public Response updateDocument(String database, String schema, String id, JSONObject newDoc, int expectedVersion) {
+        try {
+            Validators.validateDocument(newDoc, schema, database);
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, e.getMessage());
+        }
+        synchronized (this) {
+            try {
+                File documentFile = new File(PathBuilder.getPathToDocument(database, schema, id));
+                if (!documentFile.exists())
+                    return new Response(ResponseType.ERROR, "Document not found");
+
+                FileReader fileReader = new FileReader(documentFile);
+                fileReader.read();
+                int storedVersion = new JSONObject(fileReader.getContent()).optInt(JsonKeys.VERSION, 1);
+                if (storedVersion != expectedVersion)
+                    return new Response(ResponseType.ERROR,
+                            "Version conflict: document is at version " + storedVersion, storedVersion);
+
+                int newVersion = storedVersion + 1;
+                newDoc.put(JsonKeys.VERSION, newVersion);
+                new FileWriter(documentFile, newDoc.toString()).write();
+                fireOnUpdate(database, schema);
+                return new Response(ResponseType.SUCCESS, "Document updated successfully", newVersion);
+            } catch (Exception e) {
+                return new Response(ResponseType.ERROR, e.getMessage());
+            }
+        }
+    }
+
+    public Response applyUpdate(String database, String schema, String id, JSONObject doc) {
+        try {
+            Validators.validateDocument(doc, schema, database);
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, e.getMessage());
+        }
+        synchronized (this) {
+            try {
+                File documentFile = new File(PathBuilder.getPathToDocument(database, schema, id));
+                if (!documentFile.exists())
+                    documentFile.createNewFile();
+                new FileWriter(documentFile, doc.toString()).write();
+                fireOnUpdate(database, schema);
+                return new Response(ResponseType.SUCCESS, "Document updated successfully");
+            } catch (Exception e) {
+                return new Response(ResponseType.ERROR, e.getMessage());
+            }
+        }
+    }
+
+    private void fireOnUpdate(String database, String schema) {
+        try {
+            indexManager.onUpdate(database, schema);
+        } catch (Exception indexError) {
+            // indexes are derived/rebuildable; don't fail the write on a maintenance error
+            log.error("index maintenance failed for {}.{} on update", database, schema, indexError);
+        }
+    }
+
     private void updateSchemaInfo(String database, String schema, int i) throws Exception {
         try{
             String pathToSchema = PathBuilder.getPathToSchema(database, schema);

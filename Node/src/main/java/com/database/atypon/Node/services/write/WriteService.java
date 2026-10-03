@@ -54,6 +54,23 @@ public class WriteService {
         }
     }
 
+    public Response updateDocument(String database, String schema, String id,
+                                   HashMap<String, Object> document, int expectedVersion) {
+        try {
+            return writeOperation.updateDocument(database, schema, id, new JSONObject(document), expectedVersion);
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, e.getMessage());
+        }
+    }
+
+    public Response applyUpdate(String database, String schema, String id, HashMap<String, Object> document) {
+        try {
+            return writeOperation.applyUpdate(database, schema, id, new JSONObject(document));
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, e.getMessage());
+        }
+    }
+
     public List<Response> broadcastSchema(String database, HashMap<String, Object> schema) {
         List<Supplier<Response>> tasks = new ArrayList<>();
         for (Node node : Network.nodes) {
