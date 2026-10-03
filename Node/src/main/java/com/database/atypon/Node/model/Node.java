@@ -86,6 +86,36 @@ public class Node {
             return new Response(ResponseType.ERROR, this.name + ": " + e.getMessage());
         }
     }
+    public Response createIndex(String database, String schema, String field) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("authorization", "internal");
+        HttpEntity entity = new HttpEntity(headers);
+        try {
+            Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL()
+                    + "/admin/index/create?database=" + database + "&schema=" + schema + "&field=" + field,
+                    entity, Vector.class);
+            return new Response(ResponseType.valueOf(response.get(0).get("responseType")), response.get(0).get("message"));
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, this.name + ": " + e.getMessage());
+        }
+    }
+
+    public Response dropIndex(String database, String schema, String field) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("authorization", "internal");
+        HttpEntity entity = new HttpEntity(headers);
+        try {
+            Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL()
+                    + "/admin/index/drop?database=" + database + "&schema=" + schema + "&field=" + field,
+                    entity, Vector.class);
+            return new Response(ResponseType.valueOf(response.get(0).get("responseType")), response.get(0).get("message"));
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, this.name + ": " + e.getMessage());
+        }
+    }
+
     public static Node nodeBuilder(String name){
         return new Node(name, "8080");
     }
