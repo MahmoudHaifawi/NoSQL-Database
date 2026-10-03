@@ -1,4 +1,4 @@
-# ---- build stage: compile the module to a runnable jar ----
+# ---- build stage ----
 FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /build
 COPY pom.xml .
@@ -9,7 +9,5 @@ RUN mvn -q -B -DskipTests package
 FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /build/target/*.jar app.jar
-# Seed the user registry (admin account) so authentication works on a fresh container.
-COPY data/info.json data/info.json
-EXPOSE 8080
+EXPOSE 8078
 ENTRYPOINT ["java", "-jar", "app.jar"]

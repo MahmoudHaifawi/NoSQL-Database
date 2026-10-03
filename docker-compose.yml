@@ -1,0 +1,45 @@
+# Full three-module cluster on one bridge network.
+#
+#   docker compose up --build
+#   open http://localhost:8078/login   (seeded admin: mahmoud / admin)
+#
+# Each service builds from source (multi-stage Dockerfiles), so no local `mvn` is
+# required. Addressing is consistent because every component resolves peers by the
+# compose service name:
+#   - data nodes listen on 8080 (one per container): Node0, Node1, Node2
+#   - the bootstrapping node is told the node list via CLUSTER_NODES, and wires the
+#     mesh + routes users to those same names
+#   - the DBMS gateway finds the bootstrapping node via BOOTSTRAP_URL
+#
+# The node service names are capitalised (Node0..) to match the schema-affinity
+# names the nodes assign internally, so affinity-based document routing resolves.
+services:
+  Node0:
+    build: ./Node
+    networks: [db_cluster]
+  Node1:
+    build: ./Node
+    networks: [db_cluster]
+  Node2:
+    build: ./Node
+    networks: [db_cluster]
+
+  bootstrappingnode:
+    build: ./BootstrappingNode
+    environment:
+      CLUSTER_NODES: "Node0:8080,Node1:8080,Node2:8080"
+    depends_on: [Node0, Node1, Node2]
+    networks: [db_cluster]
+
+  dbms:
+    build: ./DBMS
+    environment:
+      BOOTSTRAP_URL: "http://bootstrappingnode:8079"
+    ports:
+      - "8078:8078"
+    depends_on: [bootstrappingnode]
+    networks: [db_cluster]
+
+networks:
+  db_cluster:
+    driver: bridge
