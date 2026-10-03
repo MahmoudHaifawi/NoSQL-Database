@@ -23,6 +23,17 @@ public class WriteRequest {
         return restTemplate.postForObject(url, request, String.class);
     }
 
+    public static String updateDocument(String databaseName, String schemaName, String id,
+                                        JSONObject document, String token, String nodeURL) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = nodeURL + PathBuilder.buildUpdateDocumentPath(databaseName, schemaName, id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", token);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<String> request = new HttpEntity<>(document.toString(), headers);
+        return restTemplate.postForObject(url, request, String.class);
+    }
+
     public static String createDocument(String databaseName, String schemaName,
                                         JSONObject document, String token, String nodeURL) {
 

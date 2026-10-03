@@ -19,6 +19,10 @@ public class PathBuilder {
                 schemaName + "&id=" + id;
     }
 
+    public static String buildUpdateDocumentPath(String databaseName, String schemaName, String id){
+        return "/write/document/update?" + "database=" + databaseName + "&schema=" + schemaName + "&id=" + id;
+    }
+
     public static String buildCreateIndexPath(String database, String schema, String field){
         return "/admin/index/create?" + "database=" + database + "&schema=" + schema + "&field=" + field;
     }
