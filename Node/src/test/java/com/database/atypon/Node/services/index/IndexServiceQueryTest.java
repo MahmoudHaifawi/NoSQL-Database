@@ -63,6 +63,17 @@ class IndexServiceQueryTest {
     }
 
     @Test
+    void onInsertIsIdempotent(@TempDir Path root) throws Exception {
+        IndexService svc = usersIndexedByAge(root);
+        JSONObject doc = new JSONObject().put("Name", "Dan").put("Age", 28);
+        svc.onInsert("shop", "users", 3, doc);
+        svc.onInsert("shop", "users", 3, doc); // duplicate write of the same (value, docId) must be a no-op
+        // the composite key (28, docId=3) appears exactly once, not twice
+        assertThat(svc.query("shop", "users", "Age", com.database.atypon.Node.index.BPlusTree.Op.EQ, 28, null, true, 0, -1))
+                .containsExactly(3);
+    }
+
+    @Test
     void descendingAndPagination(@TempDir Path root) throws Exception {
         IndexService svc = usersIndexedByAge(root);
         assertThat(svc.query("shop", "users", "Age", BPlusTree.Op.GTE, 0, null, false, 0, -1)).containsExactly(2, 0, 1);
