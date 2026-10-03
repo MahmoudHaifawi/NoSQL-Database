@@ -103,6 +103,35 @@ public class WriteController {
         return responses;
     }
 
+    @PostMapping(value = "/document/update", produces = "application/json")
+    public Vector<Response> updateDocument(@RequestParam String database,
+                                           @RequestParam String schema,
+                                           @RequestParam String id,
+                                           @RequestBody HashMap<String, Object> document,
+                                           @RequestHeader("authorization") String token) {
+        if (!authenticationService.isUserToken(token))
+            return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
+
+        if (authenticationService.isInternalToken(token))
+            return new Vector<>(List.of(writeService.applyUpdate(database, schema, id, document)));
+
+        int expectedVersion = 1;
+        Object v = document.get("_version");
+        if (v instanceof Number)
+            expectedVersion = ((Number) v).intValue();
+
+        Vector<Response> responses = new Vector<>();
+        Response result = writeService.updateDocument(database, schema, id, document, expectedVersion);
+        responses.add(result);
+
+        if (result.getResponseType() == ResponseType.SUCCESS) {
+            // stamp the new version onto the document and replicate it verbatim to peers
+            document.put("_version", ((Number) result.getContent()).intValue());
+            responses.addAll(writeService.broadcastUpdate(database, schema, id, document));
+        }
+        return responses;
+    }
+
     private Vector<Response> forwardRequest(String url, HashMap<String, Object> document, String token) {
         try{
             HttpHeaders headers = new HttpHeaders();

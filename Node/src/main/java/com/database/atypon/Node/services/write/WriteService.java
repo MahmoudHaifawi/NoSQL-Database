@@ -87,6 +87,15 @@ public class WriteService {
         return Broadcaster.broadcast(tasks);
     }
 
+    public List<Response> broadcastUpdate(String database, String schema, String id,
+                                          HashMap<String, Object> document) {
+        List<Supplier<Response>> tasks = new ArrayList<>();
+        for (Node node : Network.nodes) {
+            tasks.add(() -> node.updateDocument(database, schema, id, document));
+        }
+        return Broadcaster.broadcast(tasks);
+    }
+
     private void writeNodeAffinity(String database, String schemaName, String nodeAffinity) {
         try{
             String schemaAffinityPath = PathBuilder.getPathToAffinity(database, schemaName);
