@@ -23,26 +23,21 @@ public class BootstrappingNodeApplication implements CommandLineRunner {
 	public void run(String... args) {
 
 		RestTemplate restTemplate = new RestTemplate();
-		Node node0 = new Node("Node0", "8080");
-		Node node1 = new Node("Node1", "8080");
-		Node node2 = new Node("Node2", "8080");
-	//	Node node3 = new Node("Node3", "8080", 3);
-//		Node node4 = new Node("Node4", "8080", 4);
-		List<Node> nodes = List.of(node0, node1, node2);
+		List<Node> nodes = com.database.atypon.BootstrappingNode.utils.ClusterNodes.all();
 
-		for(int i = 0 ; i<3 ; i++) {
-			List<Node> nodesToAdd = new Vector<>();
-			for(int j = 0 ; j<3 ; j++)
-				if(i != j)
-					nodesToAdd.add(nodes.get(j));
+		for (int i = 0; i < nodes.size(); i++) {
+			List<Node> peers = new Vector<>();
+			for (int j = 0; j < nodes.size(); j++)
+				if (i != j)
+					peers.add(nodes.get(j));
 
-			String url = nodes.get(i).getURL() + "/network/add/nodes";
-			String url2 = nodes.get(i).getURL() + "/network/assign/self";
-
+			String base = nodes.get(i).getURL();
 			try {
-				String response = restTemplate.postForObject(url, nodesToAdd, String.class);
-				String response2 = restTemplate.postForObject(url2, nodes.get(i), String.class);
+				restTemplate.postForObject(base + "/network/add/nodes", peers, String.class);
+				restTemplate.postForObject(base + "/network/assign/self", nodes.get(i), String.class);
 			} catch (Exception e) {
+				// Node not reachable yet (e.g. started after the bootstrapper, or absent in a
+				// smaller local topology). Peers are wired when the node comes up and re-registers.
 			}
 		}
 	}
