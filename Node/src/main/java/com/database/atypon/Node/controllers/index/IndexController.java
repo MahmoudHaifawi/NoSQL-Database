@@ -77,7 +77,7 @@ public class IndexController {
         }
         try {
             List<String> fields = indexManager.listIndexes(database, schema);
-            return one(new Response(ResponseType.SUCCESS, "Indexed fields", fields.toString()));
+            return one(new Response(ResponseType.SUCCESS, "Indexed fields", fields));
         } catch (Exception e) {
             return one(new Response(ResponseType.ERROR, e.getMessage()));
         }
@@ -92,14 +92,20 @@ public class IndexController {
             String database = (String) body.get("database");
             String schema = (String) body.get("schema");
             String field = (String) body.get("field");
-            BPlusTree.Op op = BPlusTree.Op.valueOf(((String) body.get("op")).toUpperCase());
+            Object opRaw = body.get("op");
+            if (database == null || schema == null || field == null || opRaw == null) {
+                return new Response(ResponseType.ERROR, "Missing required field (database, schema, field, op)");
+            }
+            BPlusTree.Op op = BPlusTree.Op.valueOf(opRaw.toString().toUpperCase());
             Object value = body.get("value");
             Object high = body.get("high");
             boolean ascending = !"DESC".equalsIgnoreCase(String.valueOf(body.getOrDefault("order", "ASC")));
-            int limit = body.containsKey("limit") ? ((Number) body.get("limit")).intValue() : -1;
-            int offset = body.containsKey("offset") ? ((Number) body.get("offset")).intValue() : 0;
+            Object rawLimit = body.get("limit");
+            int limit = (rawLimit instanceof Number) ? ((Number) rawLimit).intValue() : -1;
+            Object rawOffset = body.get("offset");
+            int offset = (rawOffset instanceof Number) ? ((Number) rawOffset).intValue() : 0;
             List<Integer> ids = indexManager.query(database, schema, field, op, value, high, ascending, offset, limit);
-            return new Response(ResponseType.SUCCESS, "Query results", ids.toString());
+            return new Response(ResponseType.SUCCESS, "Query results", ids);
         } catch (Exception e) {
             return new Response(ResponseType.ERROR, e.getMessage());
         }
