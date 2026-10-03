@@ -26,6 +26,12 @@ public class AffinityLoadBalancer {
     }
 
     public static Response checkAffinity(String database, String schema){
+        // Single-node cluster (no peers): this node owns every schema, so there is nothing to route
+        // to. Short-circuit before consulting the affinity file or self name, which otherwise assume
+        // the Docker-style "Node0".. identities and would wrongly forward writes to an unreachable peer.
+        if (Network.nodes == null || Network.nodes.isEmpty())
+            return new Response(ResponseType.SUCCESS, "Single node owns all schemas");
+
         String pathToAffinity = PathBuilder.getPathToAffinity(database, schema);
 
         File file = new File(pathToAffinity);
