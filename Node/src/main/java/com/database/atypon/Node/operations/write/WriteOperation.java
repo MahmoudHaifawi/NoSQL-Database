@@ -160,6 +160,57 @@ public class WriteOperation {
         }
     }
 
+    public Response deleteDocument(String database, String schema, String id, int expectedVersion) {
+        synchronized (this) {
+            try {
+                File documentFile = new File(PathBuilder.getPathToDocument(database, schema, id));
+                if (!documentFile.exists())
+                    return new Response(ResponseType.ERROR, "Document not found");
+
+                FileReader fileReader = new FileReader(documentFile);
+                fileReader.read();
+                JSONObject doc = new JSONObject(fileReader.getContent());
+                int storedVersion = doc.optInt(JsonKeys.VERSION, 1);
+                if (storedVersion != expectedVersion)
+                    return new Response(ResponseType.ERROR,
+                            "Version conflict: document is at version " + storedVersion, storedVersion);
+
+                if (!documentFile.delete())
+                    return new Response(ResponseType.ERROR, "Failed to delete document");
+                fireOnDelete(database, schema, Integer.parseInt(id), doc);
+                return new Response(ResponseType.SUCCESS, "Document deleted successfully");
+            } catch (Exception e) {
+                return new Response(ResponseType.ERROR, e.getMessage());
+            }
+        }
+    }
+
+    public Response applyDelete(String database, String schema, String id) {
+        synchronized (this) {
+            try {
+                File documentFile = new File(PathBuilder.getPathToDocument(database, schema, id));
+                if (!documentFile.exists())
+                    return new Response(ResponseType.SUCCESS, "Document already absent");
+                FileReader fileReader = new FileReader(documentFile);
+                fileReader.read();
+                JSONObject doc = new JSONObject(fileReader.getContent());
+                documentFile.delete();
+                fireOnDelete(database, schema, Integer.parseInt(id), doc);
+                return new Response(ResponseType.SUCCESS, "Document deleted successfully");
+            } catch (Exception e) {
+                return new Response(ResponseType.ERROR, e.getMessage());
+            }
+        }
+    }
+
+    private void fireOnDelete(String database, String schema, int docId, JSONObject doc) {
+        try {
+            indexManager.onDelete(database, schema, docId, doc);
+        } catch (Exception indexError) {
+            log.error("index maintenance failed for {}.{} doc {} on delete", database, schema, docId, indexError);
+        }
+    }
+
     private void updateSchemaInfo(String database, String schema, int i) throws Exception {
         try{
             String pathToSchema = PathBuilder.getPathToSchema(database, schema);

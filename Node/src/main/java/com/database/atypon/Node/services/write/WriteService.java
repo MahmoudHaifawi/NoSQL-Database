@@ -71,6 +71,22 @@ public class WriteService {
         }
     }
 
+    public Response deleteDocument(String database, String schema, String id, int expectedVersion) {
+        try {
+            return writeOperation.deleteDocument(database, schema, id, expectedVersion);
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, e.getMessage());
+        }
+    }
+
+    public Response applyDelete(String database, String schema, String id) {
+        try {
+            return writeOperation.applyDelete(database, schema, id);
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, e.getMessage());
+        }
+    }
+
     public List<Response> broadcastSchema(String database, HashMap<String, Object> schema) {
         List<Supplier<Response>> tasks = new ArrayList<>();
         for (Node node : Network.nodes) {
