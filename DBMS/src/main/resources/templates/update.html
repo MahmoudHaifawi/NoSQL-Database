@@ -46,6 +46,14 @@
                 <textarea class="form-control" name="document" rows="10" th:text="${docJson}"></textarea>
                 <button type="submit" class="btn btn-success btn-block mt-2">Save</button>
             </form>
+            <form method="post" th:action="@{/update/delete}" class="mt-2"
+                  onsubmit="return confirm('Delete this document?');">
+                <input type="hidden" name="database" th:value="${f_database}"/>
+                <input type="hidden" name="schema" th:value="${f_schema}"/>
+                <input type="hidden" name="id" th:value="${f_id}"/>
+                <input type="hidden" name="version" th:value="${version}"/>
+                <button type="submit" class="btn btn-danger btn-block">Delete</button>
+            </form>
         </div>
     </div>
 </div>

@@ -60,6 +60,26 @@ public class UpdateController {
         return "update";
     }
 
+    @PostMapping("/delete")
+    public String delete(@RequestParam String database, @RequestParam String schema,
+                         @RequestParam String id, @RequestParam int version,
+                         HttpServletRequest request, Model model) {
+        String token = (String) request.getSession().getAttribute("token");
+        String nodeURL = (String) request.getSession().getAttribute("nodeURL");
+        model.addAttribute("f_database", database);
+        model.addAttribute("f_schema", schema);
+        model.addAttribute("f_id", id);
+        try {
+            writeService.deleteDocument(database, schema, id, version, token, nodeURL);
+            model.addAttribute("updateMessage", "Deleted document " + id);
+            // the document is gone: do not reload the edit form
+        } catch (Exception e) {
+            model.addAttribute("updateError", e.getMessage());
+            loadForEdit(database, schema, id, request, model); // conflict: show the current version
+        }
+        return "update";
+    }
+
     private void loadForEdit(String database, String schema, String id, HttpServletRequest request, Model model) {
         String token = (String) request.getSession().getAttribute("token");
         String nodeURL = (String) request.getSession().getAttribute("nodeURL");
