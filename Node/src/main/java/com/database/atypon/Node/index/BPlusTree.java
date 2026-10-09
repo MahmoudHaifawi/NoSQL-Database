@@ -124,6 +124,30 @@ public class BPlusTree {
         return -1;
     }
 
+    // ---- delete (no rebalance) ----
+
+    /**
+     * Removes {@code key} from its leaf if present and returns whether anything was removed.
+     * Performs no merging/borrowing/root-shrink: a leaf may become under-full or empty but stays
+     * sorted and in the sibling chain, and internal separators are left unchanged (a separator is
+     * a routing guide that remains valid when a leaf's minimum rises). Search and range scans stay
+     * correct; only space is wasted after heavy deletion.
+     */
+    public boolean delete(byte[] key) throws IOException {
+        int leafId = findLeaf(key);
+        Page leaf = pager.get(leafId);
+        List<byte[]> keys = readLeafKeys(leaf);
+        int idx = -1;
+        for (int i = 0; i < keys.size(); i++) {
+            if (KeyCodec.compare(keyType, key, keys.get(i)) == 0) { idx = i; break; }
+        }
+        if (idx < 0) return false;
+        keys.remove(idx);
+        writeLeafKeys(leaf, keys);   // rewrites entries 0..size-1 and sets numKeys (trailing slot ignored)
+        pager.markDirty(leafId);
+        return true;
+    }
+
     // ---- insert ----
 
     /**
