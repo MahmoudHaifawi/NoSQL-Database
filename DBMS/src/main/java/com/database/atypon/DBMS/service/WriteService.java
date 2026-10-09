@@ -56,6 +56,20 @@ public class WriteService {
         }
         return first.optInt("content", expectedVersion + 1); // the new version
     }
+
+    public void deleteDocument(String databaseName, String schemaName, String id, int version,
+                               String token, String nodeURL) throws Exception {
+        String raw = com.database.atypon.DBMS.database_system.write.WriteRequest
+                .deleteDocument(databaseName, schemaName, id, version, token, nodeURL);
+        org.json.JSONArray responses = new org.json.JSONArray(raw);
+        if (responses.isEmpty()) {
+            throw new Exception("No response from node");
+        }
+        JSONObject first = responses.getJSONObject(0);
+        if ("ERROR".equals(first.optString("responseType"))) {
+            throw new Exception(first.optString("message"));
+        }
+    }
 }
 
 

@@ -34,6 +34,16 @@ public class WriteRequest {
         return restTemplate.postForObject(url, request, String.class);
     }
 
+    public static String deleteDocument(String databaseName, String schemaName, String id, int version,
+                                        String token, String nodeURL) {
+        RestTemplate restTemplate = new RestTemplate();
+        String url = nodeURL + PathBuilder.buildDeleteDocumentPath(databaseName, schemaName, id, version);
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", token);
+        HttpEntity<Void> request = new HttpEntity<>(headers);
+        return restTemplate.postForObject(url, request, String.class);
+    }
+
     public static String createDocument(String databaseName, String schemaName,
                                         JSONObject document, String token, String nodeURL) {
 

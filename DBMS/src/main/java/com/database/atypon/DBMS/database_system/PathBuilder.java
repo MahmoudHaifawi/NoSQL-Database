@@ -23,6 +23,11 @@ public class PathBuilder {
         return "/write/document/update?" + "database=" + databaseName + "&schema=" + schemaName + "&id=" + id;
     }
 
+    public static String buildDeleteDocumentPath(String databaseName, String schemaName, String id, int version){
+        return "/write/document/delete?" + "database=" + databaseName + "&schema=" + schemaName
+                + "&id=" + id + "&version=" + version;
+    }
+
     public static String buildCreateIndexPath(String database, String schema, String field){
         return "/admin/index/create?" + "database=" + database + "&schema=" + schema + "&field=" + field;
     }
