@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -53,7 +54,7 @@ class WriteOperationUpdateTest {
         JSONObject stored = new JSONObject(Files.readString(db.resolve("users-records").resolve("0.json")));
         assertThat(stored.getInt("Age")).isEqualTo(50);
         assertThat(stored.getInt("_version")).isEqualTo(2);
-        verify(indexManagerMock).onUpdate(eq("updb"), eq("users"));
+        verify(indexManagerMock).onUpdate(eq("updb"), eq("users"), eq(0), any(), any());
     }
 
     @Test

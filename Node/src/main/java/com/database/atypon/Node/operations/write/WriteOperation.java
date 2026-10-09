@@ -115,7 +115,8 @@ public class WriteOperation {
 
                 FileReader fileReader = new FileReader(documentFile);
                 fileReader.read();
-                int storedVersion = new JSONObject(fileReader.getContent()).optInt(JsonKeys.VERSION, 1);
+                JSONObject oldDoc = new JSONObject(fileReader.getContent());
+                int storedVersion = oldDoc.optInt(JsonKeys.VERSION, 1);
                 if (storedVersion != expectedVersion)
                     return new Response(ResponseType.ERROR,
                             "Version conflict: document is at version " + storedVersion, storedVersion);
@@ -123,7 +124,7 @@ public class WriteOperation {
                 int newVersion = storedVersion + 1;
                 newDoc.put(JsonKeys.VERSION, newVersion);
                 new FileWriter(documentFile, newDoc.toString()).write();
-                fireOnUpdate(database, schema);
+                fireOnUpdate(database, schema, Integer.parseInt(id), oldDoc, newDoc);
                 return new Response(ResponseType.SUCCESS, "Document updated successfully", newVersion);
             } catch (Exception e) {
                 return new Response(ResponseType.ERROR, e.getMessage());
@@ -140,10 +141,16 @@ public class WriteOperation {
         synchronized (this) {
             try {
                 File documentFile = new File(PathBuilder.getPathToDocument(database, schema, id));
-                if (!documentFile.exists())
+                JSONObject oldDoc = new JSONObject();
+                if (documentFile.exists()) {
+                    FileReader fileReader = new FileReader(documentFile);
+                    fileReader.read();
+                    oldDoc = new JSONObject(fileReader.getContent());
+                } else {
                     documentFile.createNewFile();
+                }
                 new FileWriter(documentFile, doc.toString()).write();
-                fireOnUpdate(database, schema);
+                fireOnUpdate(database, schema, Integer.parseInt(id), oldDoc, doc);
                 return new Response(ResponseType.SUCCESS, "Document updated successfully");
             } catch (Exception e) {
                 return new Response(ResponseType.ERROR, e.getMessage());
@@ -151,12 +158,12 @@ public class WriteOperation {
         }
     }
 
-    private void fireOnUpdate(String database, String schema) {
+    private void fireOnUpdate(String database, String schema, int docId, JSONObject oldDoc, JSONObject newDoc) {
         try {
-            indexManager.onUpdate(database, schema);
+            indexManager.onUpdate(database, schema, docId, oldDoc, newDoc);
         } catch (Exception indexError) {
             // indexes are derived/rebuildable; don't fail the write on a maintenance error
-            log.error("index maintenance failed for {}.{} on update", database, schema, indexError);
+            log.error("index maintenance failed for {}.{} doc {} on update", database, schema, docId, indexError);
         }
     }
 

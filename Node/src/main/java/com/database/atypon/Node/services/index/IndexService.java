@@ -153,6 +153,33 @@ public class IndexService {
         }
     }
 
+    /** Patch every index on this schema for a document update: remove the old composite key, add the new. */
+    public void onUpdate(String db, String schema, int docId, JSONObject oldDoc, JSONObject newDoc) throws IOException {
+        for (String field : listIndexes(db, schema)) {
+            try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
+                BPlusTree tree = BPlusTree.open(pager);
+                KeyType keyType = indexKeyType(pager);
+                boolean changed = false;
+                if (oldDoc.has(field)) {
+                    byte[] oldKey = KeyCodec.encode(keyType, coerce(keyType, oldDoc.get(field)), docId);
+                    if (tree.delete(oldKey)) {
+                        changed = true;
+                    }
+                }
+                if (newDoc.has(field)) {
+                    byte[] newKey = KeyCodec.encode(keyType, coerce(keyType, newDoc.get(field)), docId);
+                    if (!tree.contains(newKey)) {
+                        tree.insert(newKey);
+                        changed = true;
+                    }
+                }
+                if (changed) {
+                    tree.flush();
+                }
+            }
+        }
+    }
+
     /** Remove the deleted document's composite key from every index defined on this schema. */
     public void onDelete(String db, String schema, int docId, JSONObject doc) throws IOException {
         for (String field : listIndexes(db, schema)) {

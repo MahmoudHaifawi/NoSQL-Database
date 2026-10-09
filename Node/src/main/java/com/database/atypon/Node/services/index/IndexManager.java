@@ -60,17 +60,14 @@ public class IndexManager {
     }
 
     /**
-     * Rebuilds every index on the schema from the current records. Called after a document update,
-     * where an indexed field's value may have changed and in-place key deletion does not yet exist
-     * (that is M3). Runs under the write lock so readers never see a half-rebuilt index.
+     * Patches every index on the schema after a document update: removes the old composite key and
+     * inserts the new one (incremental, using B+-tree key deletion). Runs under the write lock so
+     * readers never see a half-applied index.
      */
-    public void onUpdate(String db, String schema) throws IOException {
+    public void onUpdate(String db, String schema, int docId, JSONObject oldDoc, JSONObject newDoc) throws IOException {
         lock.writeLock().lock();
         try {
-            for (String field : indexService.listIndexes(db, schema)) {
-                indexService.dropIndex(db, schema, field);
-                indexService.createIndex(db, schema, field);
-            }
+            indexService.onUpdate(db, schema, docId, oldDoc, newDoc);
         } finally {
             lock.writeLock().unlock();
         }
