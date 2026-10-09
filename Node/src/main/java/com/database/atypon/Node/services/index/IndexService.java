@@ -153,6 +153,23 @@ public class IndexService {
         }
     }
 
+    /** Remove the deleted document's composite key from every index defined on this schema. */
+    public void onDelete(String db, String schema, int docId, JSONObject doc) throws IOException {
+        for (String field : listIndexes(db, schema)) {
+            if (!doc.has(field)) {
+                continue;
+            }
+            try (Pager pager = new Pager(indexFile(db, schema, field).toFile())) {
+                BPlusTree tree = BPlusTree.open(pager);
+                KeyType keyType = indexKeyType(pager);
+                byte[] key = KeyCodec.encode(keyType, coerce(keyType, doc.get(field)), docId);
+                if (tree.delete(key)) {
+                    tree.flush();
+                }
+            }
+        }
+    }
+
     private KeyType indexKeyType(Pager pager) throws IOException {
         Page meta = pager.get(Pager.META_PAGE_ID);
         if (!meta.hasValidMagic()) {

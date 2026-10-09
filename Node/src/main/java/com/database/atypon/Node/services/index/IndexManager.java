@@ -76,6 +76,15 @@ public class IndexManager {
         }
     }
 
+    public void onDelete(String db, String schema, int docId, JSONObject doc) throws IOException {
+        lock.writeLock().lock();
+        try {
+            indexService.onDelete(db, schema, docId, doc);
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
     public List<String> listIndexes(String db, String schema) throws IOException {
         lock.readLock().lock();
         try {
