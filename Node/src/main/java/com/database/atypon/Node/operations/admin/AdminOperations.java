@@ -55,7 +55,7 @@ public class AdminOperations {
             //add user to json file
             JSONObject obj = new JSONObject();
             obj.put("username", user.getUsername());
-            obj.put("password", user.getPassword());
+            obj.put("password", new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder().encode(user.getPassword()));
             obj.put("role", user.getRole());
 
             JSONObject info = getInfo();

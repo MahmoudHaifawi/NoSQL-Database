@@ -29,7 +29,8 @@ class IndexControllerTest {
         Files.createDirectories(recs);
         Files.writeString(recs.resolve("0.json"), new JSONObject().put("Age", 30).toString());
         Files.writeString(recs.resolve("1.json"), new JSONObject().put("Age", 25).toString());
-        return new IndexController(new IndexManager(root), new AuthenticationService());
+        return new IndexController(new IndexManager(root),
+                new AuthenticationService(new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder()));
     }
 
     @Test

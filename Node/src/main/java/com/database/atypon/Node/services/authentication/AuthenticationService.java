@@ -7,6 +7,7 @@ import com.database.atypon.Node.utils.file_operations.fileReader.FileReader;
 import com.database.atypon.Node.utils.response.Response;
 import com.database.atypon.Node.utils.response.ResponseType;
 import org.json.JSONObject;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.Cookie;
@@ -14,6 +15,12 @@ import java.io.File;
 
 @Service
 public class AuthenticationService {
+
+    private final BCryptPasswordEncoder passwordEncoder;
+
+    public AuthenticationService(BCryptPasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     public Response authenticateUser(User user) {
         String pathToInfo = PathBuilder.getPathToMainInfo();
@@ -27,7 +34,7 @@ public class AuthenticationService {
             JSONObject userObject = users.getJSONObject(user.getUsername());
             if (userObject == null)
                 return new Response(ResponseType.ERROR, "User not found");
-            if (!userObject.getString("password").equals(user.getPassword()))
+            if (!passwordEncoder.matches(user.getPassword(), userObject.getString("password")))
                 return new Response(ResponseType.ERROR, "Wrong password");
             user.setRole(userObject.getString("role"));
             return new Response(ResponseType.SUCCESS, "Login successful", user);

@@ -1,10 +1,10 @@
 {
-  "databases":[],
+  "databases": [],
   "users": {
-    "mahmoud":{
-      "password":"admin",
-      "role":"admin",
-      "username":"mahmoud"
+    "mahmoud": {
+      "password": "$2a$10$ecSXypXMoHQaO5FshOpVB.wc4rPk8VRhu4uyqgz4RPRfsA.0AegOO",
+      "role": "admin",
+      "username": "mahmoud"
     }
   }
 }
