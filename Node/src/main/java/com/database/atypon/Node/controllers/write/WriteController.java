@@ -132,6 +132,27 @@ public class WriteController {
         return responses;
     }
 
+    @PostMapping(value = "/document/delete", produces = "application/json")
+    public Vector<Response> deleteDocument(@RequestParam String database,
+                                           @RequestParam String schema,
+                                           @RequestParam String id,
+                                           @RequestParam(required = false, defaultValue = "0") int version,
+                                           @RequestHeader("authorization") String token) {
+        if (!authenticationService.isUserToken(token))
+            return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
+
+        if (authenticationService.isInternalToken(token))
+            return new Vector<>(List.of(writeService.applyDelete(database, schema, id)));
+
+        Vector<Response> responses = new Vector<>();
+        Response result = writeService.deleteDocument(database, schema, id, version);
+        responses.add(result);
+        if (result.getResponseType() == ResponseType.SUCCESS) {
+            responses.addAll(writeService.broadcastDelete(database, schema, id));
+        }
+        return responses;
+    }
+
     private Vector<Response> forwardRequest(String url, HashMap<String, Object> document, String token) {
         try{
             HttpHeaders headers = new HttpHeaders();

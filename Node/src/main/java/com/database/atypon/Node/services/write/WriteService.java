@@ -112,6 +112,14 @@ public class WriteService {
         return Broadcaster.broadcast(tasks);
     }
 
+    public List<Response> broadcastDelete(String database, String schema, String id) {
+        List<Supplier<Response>> tasks = new ArrayList<>();
+        for (Node node : Network.nodes) {
+            tasks.add(() -> node.deleteDocument(database, schema, id));
+        }
+        return Broadcaster.broadcast(tasks);
+    }
+
     private void writeNodeAffinity(String database, String schemaName, String nodeAffinity) {
         try{
             String schemaAffinityPath = PathBuilder.getPathToAffinity(database, schemaName);

@@ -100,6 +100,20 @@ public class Node {
             return new Response(ResponseType.ERROR, this.name + ": " + e.getMessage());
         }
     }
+    public Response deleteDocument(String database, String schema, String id) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("authorization", "internal");
+        HttpEntity entity = new HttpEntity(headers);
+        try {
+            Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL() +
+                            "/write/document/delete?database=" + database + "&schema=" + schema + "&id=" + id,
+                    entity, Vector.class);
+            return new Response(ResponseType.valueOf(response.get(0).get("responseType")), response.get(0).get("message"));
+        } catch (Exception e) {
+            return new Response(ResponseType.ERROR, this.name + ": " + e.getMessage());
+        }
+    }
     public Response createIndex(String database, String schema, String field) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
