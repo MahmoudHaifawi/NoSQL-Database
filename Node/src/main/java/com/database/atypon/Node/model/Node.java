@@ -33,7 +33,7 @@ public class Node {
     public Response addUser(User user) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity request = new HttpEntity(user, headers);
         try{
             Vector<LinkedHashMap> response = restTemplate.postForObject(getURL()+"/admin/user/add",
@@ -48,7 +48,7 @@ public class Node {
     public Response addDatabase(String databaseName) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(headers);
         try{
             Vector<LinkedHashMap<String, String>> res = restTemplate.postForObject(this.getURL()+
@@ -62,7 +62,7 @@ public class Node {
     public Response createSchema(String database, HashMap<String, Object> schema) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(schema, headers);
         try{
             Vector<LinkedHashMap<String,String>> response = restTemplate.postForObject(getURL()+
@@ -75,7 +75,7 @@ public class Node {
     public Response createDocument(String database, String schema, HashMap<String, Object> document) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(document, headers);
         try{
             Vector<LinkedHashMap<String,String>> response = restTemplate.postForObject(getURL()+
@@ -89,7 +89,7 @@ public class Node {
     public Response updateDocument(String database, String schema, String id, HashMap<String, Object> document) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(document, headers);
         try {
             Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL() +
@@ -103,7 +103,7 @@ public class Node {
     public Response deleteDocument(String database, String schema, String id) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(headers);
         try {
             Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL() +
@@ -117,7 +117,7 @@ public class Node {
     public Response createIndex(String database, String schema, String field) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(headers);
         try {
             Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL()
@@ -132,7 +132,7 @@ public class Node {
     public Response dropIndex(String database, String schema, String field) {
         RestTemplate restTemplate = new RestTemplate();
         HttpHeaders headers = new HttpHeaders();
-        headers.add("authorization", "internal");
+        headers.add("Authorization", com.database.atypon.Node.security.ServiceTokens.bearer());
         HttpEntity entity = new HttpEntity(headers);
         try {
             Vector<LinkedHashMap<String, String>> response = restTemplate.postForObject(getURL()
