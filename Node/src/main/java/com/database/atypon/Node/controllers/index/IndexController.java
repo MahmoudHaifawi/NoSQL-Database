@@ -3,9 +3,8 @@ package com.database.atypon.Node.controllers.index;
 import com.database.atypon.Node.index.BPlusTree;
 import com.database.atypon.Node.model.Network;
 import com.database.atypon.Node.model.Node;
-import com.database.atypon.Node.services.authentication.AuthenticationService;
+import com.database.atypon.Node.security.SecurityUtils;
 import com.database.atypon.Node.services.index.IndexManager;
-import com.database.atypon.Node.utils.Token;
 import com.database.atypon.Node.utils.response.Response;
 import com.database.atypon.Node.utils.response.ResponseType;
 import org.springframework.web.bind.annotation.*;
@@ -18,19 +17,18 @@ import java.util.Vector;
 public class IndexController {
 
     private final IndexManager indexManager;
-    private final AuthenticationService authenticationService;
 
-    public IndexController(IndexManager indexManager, AuthenticationService authenticationService) {
+    public IndexController(IndexManager indexManager) {
         this.indexManager = indexManager;
-        this.authenticationService = authenticationService;
+    }
+
+    private static boolean isAdminOrigin() {
+        return "ADMIN".equals(SecurityUtils.currentRole());
     }
 
     @PostMapping(value = "/admin/index/create", produces = "application/json")
     public Vector<Response> createIndex(@RequestParam String database, @RequestParam String schema,
-                                        @RequestParam String field, @RequestHeader("authorization") String token) {
-        if (!authenticationService.isAdminToken(token)) {
-            return one(new Response(ResponseType.ERROR, "You are not an admin"));
-        }
+                                        @RequestParam String field) {
         Vector<Response> responses = new Vector<>();
         try {
             indexManager.createIndex(database, schema, field);
@@ -38,7 +36,7 @@ public class IndexController {
         } catch (Exception e) {
             responses.add(new Response(ResponseType.ERROR, e.getMessage()));
         }
-        if (!token.equals(Token.ADMIN)) {
+        if (!isAdminOrigin()) {
             return responses;
         }
         for (Node node : Network.nodes) {
@@ -49,10 +47,7 @@ public class IndexController {
 
     @PostMapping(value = "/admin/index/drop", produces = "application/json")
     public Vector<Response> dropIndex(@RequestParam String database, @RequestParam String schema,
-                                      @RequestParam String field, @RequestHeader("authorization") String token) {
-        if (!authenticationService.isAdminToken(token)) {
-            return one(new Response(ResponseType.ERROR, "You are not an admin"));
-        }
+                                      @RequestParam String field) {
         Vector<Response> responses = new Vector<>();
         try {
             indexManager.dropIndex(database, schema, field);
@@ -60,7 +55,7 @@ public class IndexController {
         } catch (Exception e) {
             responses.add(new Response(ResponseType.ERROR, e.getMessage()));
         }
-        if (!token.equals(Token.ADMIN)) {
+        if (!isAdminOrigin()) {
             return responses;
         }
         for (Node node : Network.nodes) {
@@ -70,11 +65,7 @@ public class IndexController {
     }
 
     @GetMapping(value = "/admin/index/list", produces = "application/json")
-    public Vector<Response> listIndexes(@RequestParam String database, @RequestParam String schema,
-                                        @RequestHeader("authorization") String token) {
-        if (!authenticationService.isAdminToken(token)) {
-            return one(new Response(ResponseType.ERROR, "You are not an admin"));
-        }
+    public Vector<Response> listIndexes(@RequestParam String database, @RequestParam String schema) {
         try {
             List<String> fields = indexManager.listIndexes(database, schema);
             return one(new Response(ResponseType.SUCCESS, "Indexed fields", fields));
@@ -84,10 +75,7 @@ public class IndexController {
     }
 
     @PostMapping(value = "/user/index/query", produces = "application/json")
-    public Response query(@RequestBody HashMap<String, Object> body, @RequestHeader("authorization") String token) {
-        if (!authenticationService.isUserToken(token)) {
-            return new Response(ResponseType.ERROR, "You are not a user");
-        }
+    public Response query(@RequestBody HashMap<String, Object> body) {
         try {
             String database = (String) body.get("database");
             String schema = (String) body.get("schema");

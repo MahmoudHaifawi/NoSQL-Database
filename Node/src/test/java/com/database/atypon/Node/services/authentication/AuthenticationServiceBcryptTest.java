@@ -1,6 +1,7 @@
 package com.database.atypon.Node.services.authentication;
 
 import com.database.atypon.Node.model.User;
+import com.database.atypon.Node.security.JwtService;
 import com.database.atypon.Node.utils.response.ResponseType;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -46,7 +47,8 @@ class AuthenticationServiceBcryptTest {
 
     @Test
     void acceptsCorrectPasswordAndRejectsWrong() {
-        AuthenticationService svc = new AuthenticationService(new BCryptPasswordEncoder());
+        AuthenticationService svc = new AuthenticationService(new BCryptPasswordEncoder(),
+                new JwtService("test-secret-test-secret-test-secret-123456"));
         assertThat(svc.authenticateUser(user("alice", "secret")).getResponseType()).isEqualTo(ResponseType.SUCCESS);
         assertThat(svc.authenticateUser(user("alice", "wrong")).getResponseType()).isEqualTo(ResponseType.ERROR);
     }

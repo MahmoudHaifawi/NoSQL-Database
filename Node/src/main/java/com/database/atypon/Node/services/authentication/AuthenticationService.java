@@ -1,8 +1,8 @@
 package com.database.atypon.Node.services.authentication;
 
 import com.database.atypon.Node.model.User;
+import com.database.atypon.Node.security.JwtService;
 import com.database.atypon.Node.utils.PathBuilder;
-import com.database.atypon.Node.utils.Token;
 import com.database.atypon.Node.utils.file_operations.fileReader.FileReader;
 import com.database.atypon.Node.utils.response.Response;
 import com.database.atypon.Node.utils.response.ResponseType;
@@ -12,14 +12,17 @@ import org.springframework.stereotype.Service;
 
 import javax.servlet.http.Cookie;
 import java.io.File;
+import java.time.Duration;
 
 @Service
 public class AuthenticationService {
 
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
-    public AuthenticationService(BCryptPasswordEncoder passwordEncoder) {
+    public AuthenticationService(BCryptPasswordEncoder passwordEncoder, JwtService jwtService) {
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public Response authenticateUser(User user) {
@@ -52,25 +55,7 @@ public class AuthenticationService {
         if(user.getRole() == null)
             throw new Exception("User role is null");
 
-        return user.getRole();
-    }
-    private boolean validateToken(String token){
-        return !token.isEmpty();
-    }
-    public boolean isAdminToken(String token){
-        if(!validateToken(token))
-            return false;
-        return token.equals(Token.ADMIN) || token.equals(Token.INTERNAL);
-    }
-    public boolean isUserToken(String token){
-        if(!validateToken(token))
-            return false;
-        return token.equals(Token.USER) || isAdminToken(token);
-    }
-
-    public boolean isInternalToken(String token) {
-        if(!validateToken(token))
-            return false;
-        return token.equals(Token.INTERNAL);
+        // role is stored lower-case in info.json ("admin"/"user"); JWT claims use upper-case.
+        return jwtService.generateToken(user.getUsername(), user.getRole().toUpperCase(), Duration.ofHours(1));
     }
 }

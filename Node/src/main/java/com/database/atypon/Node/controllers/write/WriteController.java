@@ -1,10 +1,9 @@
 package com.database.atypon.Node.controllers.write;
 
 import com.database.atypon.Node.model.Node;
-import com.database.atypon.Node.services.authentication.AuthenticationService;
+import com.database.atypon.Node.security.SecurityUtils;
 import com.database.atypon.Node.services.write.WriteService;
 import com.database.atypon.Node.utils.AffinityLoadBalancer;
-import com.database.atypon.Node.utils.Token;
 import com.database.atypon.Node.utils.response.Response;
 import com.database.atypon.Node.utils.response.ResponseType;
 import org.springframework.http.HttpEntity;
@@ -25,30 +24,28 @@ public class WriteController {
             org.slf4j.LoggerFactory.getLogger(WriteController.class);
 
     private final WriteService writeService;
-    private final AuthenticationService authenticationService;
 
-    public WriteController(WriteService writeService, AuthenticationService authenticationService) {
+    public WriteController(WriteService writeService) {
         this.writeService = writeService;
-        this.authenticationService = authenticationService;
+    }
+
+    private static boolean isInternal() {
+        return "INTERNAL".equals(SecurityUtils.currentRole());
     }
 
     @PostMapping(value = "/schema/new", produces = "application/json")
     public Vector<Response> createSchema(@RequestParam String database,
-                                       @RequestBody HashMap<String, Object> schema,
-                                       @RequestHeader("authorization") String token) {
+                                       @RequestBody HashMap<String, Object> schema) {
 
         if(schema == null || schema.isEmpty())
             return new Vector<>(List.of(new Response(ResponseType.ERROR, "Schema is empty")));
         if(database == null || database.isEmpty())
             return new Vector<>(List.of(new Response(ResponseType.ERROR, "Database name is empty")));
 
-        if(!authenticationService.isUserToken(token))
-            return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
-
         Vector<Response> responses = new Vector<>();
         responses.add(writeService.createSchema(database, schema));
 
-        if(token.equals(Token.INTERNAL))
+        if(isInternal())
             return responses;
 
         responses.addAll(writeService.broadcastSchema(database, schema));
@@ -59,8 +56,7 @@ public class WriteController {
     @PostMapping(value = "/document/new", produces = "application/json")
     public Vector<Response> createDocument(@RequestParam String database,
                                          @RequestParam String schema,
-                                         @RequestBody HashMap<String, Object> document,
-                                         @RequestHeader("authorization") String token) {
+                                         @RequestBody HashMap<String, Object> document) {
         if(document == null || document.isEmpty())
             return new Vector<>(List.of(new Response(ResponseType.ERROR, "Document is empty")));
         if(database == null || database.isEmpty())
@@ -68,12 +64,7 @@ public class WriteController {
         if(schema == null || schema.isEmpty())
             return new Vector<>(List.of(new Response(ResponseType.ERROR, "Schema name is empty")));
 
-        log.debug("Write document from {}", token);
-
-        if(!authenticationService.isUserToken(token))
-            return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
-
-        if(authenticationService.isInternalToken(token))
+        if(isInternal())
             return new Vector<>(List.of(writeService.createDocument(database, schema, document)));
 
         //forward the request to another node if the node affinity is not the current node
@@ -84,7 +75,7 @@ public class WriteController {
             String url = node.getURL() + "/write/document/new?database=" + database + "&schema=" + schema;
             Thread t = new Thread(()->{
                 synchronized (responses) {
-                    responses.addAll(forwardRequest(url, document, token));
+                    responses.addAll(forwardRequest(url, document));
                 }
             });
             t.start();
@@ -107,12 +98,8 @@ public class WriteController {
     public Vector<Response> updateDocument(@RequestParam String database,
                                            @RequestParam String schema,
                                            @RequestParam String id,
-                                           @RequestBody HashMap<String, Object> document,
-                                           @RequestHeader("authorization") String token) {
-        if (!authenticationService.isUserToken(token))
-            return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
-
-        if (authenticationService.isInternalToken(token))
+                                           @RequestBody HashMap<String, Object> document) {
+        if (isInternal())
             return new Vector<>(List.of(writeService.applyUpdate(database, schema, id, document)));
 
         int expectedVersion = 1;
@@ -136,12 +123,8 @@ public class WriteController {
     public Vector<Response> deleteDocument(@RequestParam String database,
                                            @RequestParam String schema,
                                            @RequestParam String id,
-                                           @RequestParam(required = false, defaultValue = "0") int version,
-                                           @RequestHeader("authorization") String token) {
-        if (!authenticationService.isUserToken(token))
-            return new Vector<>(List.of(new Response(ResponseType.ERROR, "Invalid token")));
-
-        if (authenticationService.isInternalToken(token))
+                                           @RequestParam(required = false, defaultValue = "0") int version) {
+        if (isInternal())
             return new Vector<>(List.of(writeService.applyDelete(database, schema, id)));
 
         Vector<Response> responses = new Vector<>();
@@ -153,10 +136,11 @@ public class WriteController {
         return responses;
     }
 
-    private Vector<Response> forwardRequest(String url, HashMap<String, Object> document, String token) {
+    private Vector<Response> forwardRequest(String url, HashMap<String, Object> document) {
         try{
             HttpHeaders headers = new HttpHeaders();
-            headers.set("authorization", token);
+            // forward the caller's JWT so the affinity owner handles it as the origin (writes + broadcasts)
+            headers.set("Authorization", "Bearer " + SecurityUtils.currentToken());
             HttpEntity request = new HttpEntity(document, headers);
             RestTemplate restTemplate = new RestTemplate();
 
