@@ -25,6 +25,9 @@ public class BootstrappingNodeApplication implements CommandLineRunner {
 		RestTemplate restTemplate = new RestTemplate();
 		List<Node> nodes = com.database.atypon.BootstrappingNode.utils.ClusterNodes.all();
 
+		org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+		headers.set("Authorization", com.database.atypon.BootstrappingNode.security.ServiceTokens.bearer());
+
 		for (int i = 0; i < nodes.size(); i++) {
 			List<Node> peers = new Vector<>();
 			for (int j = 0; j < nodes.size(); j++)
@@ -33,8 +36,10 @@ public class BootstrappingNodeApplication implements CommandLineRunner {
 
 			String base = nodes.get(i).getURL();
 			try {
-				restTemplate.postForObject(base + "/network/add/nodes", peers, String.class);
-				restTemplate.postForObject(base + "/network/assign/self", nodes.get(i), String.class);
+				restTemplate.postForObject(base + "/network/add/nodes",
+						new org.springframework.http.HttpEntity<>(peers, headers), String.class);
+				restTemplate.postForObject(base + "/network/assign/self",
+						new org.springframework.http.HttpEntity<>(nodes.get(i), headers), String.class);
 			} catch (Exception e) {
 				// Node not reachable yet (e.g. started after the bootstrapper, or absent in a
 				// smaller local topology). Peers are wired when the node comes up and re-registers.

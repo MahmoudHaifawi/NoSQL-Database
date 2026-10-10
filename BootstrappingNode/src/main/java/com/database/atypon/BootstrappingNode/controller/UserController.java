@@ -29,7 +29,7 @@ public class UserController {
         Node node = UsersLoadBalancer.getUserNode(3);
         String url = node.getURL() + "/admin/user/add";
         org.springframework.http.HttpHeaders headers = new HttpHeaders();
-        headers.set("authorization", "admin");
+        headers.set("Authorization", com.database.atypon.BootstrappingNode.security.ServiceTokens.bearer());
         HttpEntity request = new HttpEntity(user, headers);
         try{
             restTemplate.postForObject(url, request, List.class);
