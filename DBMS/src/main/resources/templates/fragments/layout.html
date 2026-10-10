@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><title>layout fragments</title></head>
+<body>
+
+<!-- Shared top navigation. `active` highlights the current page; identity and pinned-node badge
+     come from GlobalViewModel and render only once logged in. -->
+<nav th:fragment="navbar(active)" class="navbar nc-navbar mb-4">
+    <div class="d-flex align-items-center flex-wrap">
+        <a class="navbar-brand text-white mr-3" th:href="@{/dashboard}">NoSQL&nbsp;Cluster</a>
+        <div class="navbar-nav flex-row">
+            <a class="nav-link px-2" th:classappend="${active == 'dashboard'} ? 'active'"
+               th:href="@{/dashboard}">Dashboard</a>
+            <a class="nav-link px-2" th:classappend="${active == 'read'} ? 'active'"
+               th:href="@{/read}">Read</a>
+            <a class="nav-link px-2" th:classappend="${active == 'update'} ? 'active'"
+               th:href="@{/update}">Update</a>
+            <a class="nav-link px-2" th:classappend="${active == 'index'} ? 'active'"
+               th:href="@{/index}">Index</a>
+        </div>
+    </div>
+    <div class="nc-meta">
+        <span class="nc-node-badge" th:if="${currentNode}" title="Your session is pinned to this data node">
+            <span class="nc-dot nc-dot-up"></span>
+            <span th:text="${currentNode}">localhost:8080</span>
+        </span>
+        <span class="nc-user" th:if="${currentUser}">
+            <span th:text="${currentUser}">user</span>
+            <span class="nc-role" th:if="${currentRole}" th:text="${currentRole}">ROLE</span>
+        </span>
+        <form th:action="@{/logout}" method="post" class="m-0">
+            <button class="btn btn-outline-light btn-sm" type="submit">Logout</button>
+        </form>
+    </div>
+</nav>
+
+</body>
+</html>

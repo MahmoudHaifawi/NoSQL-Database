@@ -17,6 +17,11 @@ ConnectionRequest {
     private static final String boostStrappingNodeURL =
             System.getenv().getOrDefault("BOOTSTRAP_URL", "http://localhost:8079");
 
+    /** The configured bootstrapping-node base URL, shared with other gateway forwarders. */
+    public static String bootstrapUrl() {
+        return boostStrappingNodeURL;
+    }
+
     public static String createNewUser(User user, String token){
         try{
             RestTemplate restTemplate = new RestTemplate();

@@ -1,0 +1,157 @@
+/* Shared theme for the NoSQL cluster gateway UI. Layered on top of Bootstrap 4.3.1. */
+
+:root {
+    --nc-bg: #f4f6fb;
+    --nc-brand: #0b1f3a;
+    --nc-accent: #2563eb;
+    --nc-up: #22c55e;
+    --nc-down: #ef4444;
+}
+
+body.nc-body {
+    background: var(--nc-bg);
+    min-height: 100vh;
+}
+
+/* ---- Navbar ---- */
+.nc-navbar {
+    background: var(--nc-brand);
+}
+
+.nc-navbar .navbar-brand {
+    font-weight: 700;
+    letter-spacing: .3px;
+}
+
+.nc-navbar .nav-link {
+    color: rgba(255, 255, 255, .72);
+}
+
+.nc-navbar .nav-link:hover {
+    color: #fff;
+}
+
+.nc-navbar .nav-link.active {
+    color: #fff;
+    border-bottom: 2px solid var(--nc-accent);
+}
+
+/* identity + pinned-node cluster on the right of the navbar */
+.nc-meta {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    flex-wrap: wrap;
+}
+
+.nc-node-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, .22);
+    border-radius: 999px;
+    padding: .18rem .7rem;
+    font-size: .8rem;
+    font-family: SFMono-Regular, Consolas, Menlo, monospace;
+}
+
+.nc-user {
+    color: rgba(255, 255, 255, .85);
+    font-size: .85rem;
+}
+
+.nc-user .nc-role {
+    text-transform: uppercase;
+    font-size: .68rem;
+    letter-spacing: .5px;
+    background: var(--nc-accent);
+    color: #fff;
+    border-radius: 4px;
+    padding: .05rem .35rem;
+    margin-left: .25rem;
+}
+
+/* ---- Status dots ---- */
+.nc-dot {
+    width: .6rem;
+    height: .6rem;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.nc-dot-up {
+    background: var(--nc-up);
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, .2);
+}
+
+.nc-dot-down {
+    background: var(--nc-down);
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, .2);
+}
+
+/* ---- Topology panel ---- */
+.nc-topology {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.nc-node-card {
+    flex: 1 1 180px;
+    background: #fff;
+    border: 1px solid #e4e8f0;
+    border-radius: 10px;
+    padding: .9rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    transition: box-shadow .15s ease, border-color .15s ease;
+}
+
+.nc-node-card.nc-current {
+    border-color: var(--nc-accent);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, .25);
+}
+
+.nc-node-card .nc-node-name {
+    font-weight: 600;
+    font-family: SFMono-Regular, Consolas, Menlo, monospace;
+}
+
+.nc-node-card .nc-node-sub {
+    font-size: .72rem;
+    color: #6b7280;
+}
+
+.nc-pin {
+    font-size: .66rem;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    color: var(--nc-accent);
+    font-weight: 700;
+}
+
+/* ---- "served by" badge on result panels ---- */
+.nc-served {
+    font-size: .72rem;
+    font-weight: 500;
+    color: #475569;
+    background: #eef2ff;
+    border: 1px solid #dbe3ff;
+    border-radius: 999px;
+    padding: .1rem .6rem;
+    font-family: SFMono-Regular, Consolas, Menlo, monospace;
+}
+
+.nc-explainer {
+    font-size: .82rem;
+    color: #64748b;
+}
+
+pre.nc-doc {
+    margin: 0;
+    white-space: pre-wrap;
+    font-size: .82rem;
+}

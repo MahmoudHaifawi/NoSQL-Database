@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Duration;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -45,5 +46,12 @@ class NodeAuthorizationTest {
     @Test
     void missingTokenIsRejectedOnProtectedEndpoint() throws Exception {
         mvc.perform(get("/network/get/nodes")).andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    void healthEndpointIsPublicAndReportsUp() throws Exception {
+        mvc.perform(get("/health"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("UP"));
     }
 }

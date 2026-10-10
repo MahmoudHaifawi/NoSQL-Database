@@ -57,4 +57,17 @@ class BootstrapAuthorizationTest {
         mvc.perform(post("/createNewUser").contentType(MediaType.APPLICATION_JSON).content(USER_JSON))
                 .andExpect(status().is4xxClientError());
     }
+
+    @Test
+    void clusterRequiresAuthentication() throws Exception {
+        mvc.perform(get("/cluster")).andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    void clusterAcceptsAnyAuthenticatedUser() throws Exception {
+        // No data nodes run in-test, so each probe fails and nodes report down — but the request is
+        // authorized and returns the topology array.
+        mvc.perform(get("/cluster").header("Authorization", bearer("USER")))
+                .andExpect(status().isOk());
+    }
 }

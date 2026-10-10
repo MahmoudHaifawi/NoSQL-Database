@@ -3,6 +3,7 @@ package com.database.atypon.Node.controllers;
 import com.database.atypon.Node.model.Network;
 import com.database.atypon.Node.model.Node;
 import org.json.JSONObject;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +30,16 @@ public class TestController {
             bw.close();
         }
         return "test";
+    }
+
+    /**
+     * Unauthenticated liveness probe. The bootstrapping node polls this on every data node to build
+     * the cluster-topology view shown on the gateway dashboard, so it must be reachable without a
+     * token (it exposes no data — only that this node is up).
+     */
+    @GetMapping("/health")
+    public String health() {
+        return "UP";
     }
 
     @RequestMapping("/test/broadcast")

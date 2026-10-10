@@ -23,7 +23,7 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers("/login").permitAll()
+                .antMatchers("/login", "/health").permitAll()
                 .antMatchers("/network/**").hasRole("INTERNAL")
                 .antMatchers("/admin/**").hasRole("ADMIN")
                 .antMatchers("/user/**", "/write/**").hasRole("USER")

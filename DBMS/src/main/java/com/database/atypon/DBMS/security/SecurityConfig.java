@@ -37,6 +37,7 @@ public class SecurityConfig {
                     DbmsUser u = (DbmsUser) authentication.getPrincipal();
                     request.getSession().setAttribute("token", u.getJwt());
                     request.getSession().setAttribute("nodeURL", u.getNodeURL());
+                    request.getSession().setAttribute("username", u.getUsername());
                     response.sendRedirect("/dashboard");
                 })
                 .failureUrl("/login?error")

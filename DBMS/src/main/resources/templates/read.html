@@ -2,18 +2,16 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Read Documents</title>
+    <title>Read &middot; NoSQL Cluster</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css"
           integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body class="bg-light">
+<body class="nc-body">
 
-<nav class="navbar navbar-dark bg-dark">
-    <span class="navbar-brand mb-0 h1">Read Documents</span>
-    <a class="btn btn-outline-light btn-sm" th:href="@{/dashboard}">&larr; Dashboard</a>
-</nav>
+<nav th:replace="fragments/layout :: navbar('read')"></nav>
 
-<div class="container-fluid py-4">
+<div class="container-fluid pb-5">
     <div class="row">
         <div class="col-md-6">
             <div class="card border-primary mb-4">
@@ -65,26 +63,29 @@
 
     <!-- single document -->
     <div class="card mb-4" th:if="${single != null}">
-        <div class="card-header">Document <span class="badge badge-dark" th:text="${singleId}"></span></div>
+        <div class="card-header d-flex align-items-center">
+            <span>Document <span class="badge badge-dark" th:text="${singleId}"></span></span>
+            <span class="nc-served ml-auto" th:if="${currentNode}" th:text="'served by ' + ${currentNode}"></span>
+        </div>
         <div class="card-body">
-            <pre class="mb-0" style="white-space:pre-wrap" th:text="${single}"></pre>
+            <pre class="nc-doc" th:text="${single}"></pre>
         </div>
     </div>
 
     <!-- all documents -->
     <div class="card" th:if="${docs != null}">
-        <div class="card-header">
-            All documents
-            <span class="badge badge-secondary" th:text="${count} + ' doc(s)'"></span>
+        <div class="card-header d-flex align-items-center">
+            <span>All documents <span class="badge badge-secondary" th:text="${count} + ' doc(s)'"></span></span>
+            <span class="nc-served ml-auto" th:if="${currentNode}" th:text="'served by ' + ${currentNode}"></span>
         </div>
         <div class="card-body">
-            <p th:if="${count == 0}" class="text-muted">No documents.</p>
-            <table class="table table-sm table-striped" th:if="${count > 0}">
+            <p th:if="${count == 0}" class="text-muted mb-0">No documents.</p>
+            <table class="table table-sm table-striped mb-0" th:if="${count > 0}">
                 <thead><tr><th style="width:90px">Id</th><th>Document</th></tr></thead>
                 <tbody>
                 <tr th:each="entry : ${docs}">
                     <td><span class="badge badge-dark" th:text="${entry.key}"></span></td>
-                    <td><pre class="mb-0" style="white-space:pre-wrap" th:text="${entry.value}"></pre></td>
+                    <td><pre class="nc-doc" th:text="${entry.value}"></pre></td>
                 </tr>
                 </tbody>
             </table>
