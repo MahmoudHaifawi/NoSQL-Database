@@ -9,7 +9,7 @@ public class AdminOperations {
         return AdminRequest.createDatabase(database, token, nodeURL);
     }
 
-    public static String createNewUser(User user){
-        return ConnectionRequest.createNewUser(user);
+    public static String createNewUser(User user, String token){
+        return ConnectionRequest.createNewUser(user, token);
     }
 }

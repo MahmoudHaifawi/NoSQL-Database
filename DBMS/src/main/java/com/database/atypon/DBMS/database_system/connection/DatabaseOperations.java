@@ -28,7 +28,7 @@ public class DatabaseOperations {
     public String createNewUser(User user) throws Exception {
         if(token == null)
             throw new Exception("User not logged in");
-        return AdminOperations.createNewUser(user);
+        return AdminOperations.createNewUser(user, token);
     }
     public String createSchema(String databaseName, String schemaName,
                                JSONObject columns) throws Exception {

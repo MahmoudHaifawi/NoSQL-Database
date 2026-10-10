@@ -17,11 +17,16 @@ ConnectionRequest {
     private static final String boostStrappingNodeURL =
             System.getenv().getOrDefault("BOOTSTRAP_URL", "http://localhost:8079");
 
-    public static String createNewUser(User user){
+    public static String createNewUser(User user, String token){
         try{
             RestTemplate restTemplate = new RestTemplate();
             String url = boostStrappingNodeURL + "/createNewUser";
-            String nodeURL = (restTemplate.postForObject(url, user, Node.class)).getURL();
+            org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+            if (token != null)
+                headers.set("Authorization", "Bearer " + token);
+            org.springframework.http.HttpEntity<User> request =
+                    new org.springframework.http.HttpEntity<>(user, headers);
+            String nodeURL = (restTemplate.postForObject(url, request, Node.class)).getURL();
             return nodeURL;
         }catch (Exception e){
             System.out.println(e.getMessage());
