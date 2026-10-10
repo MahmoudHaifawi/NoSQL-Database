@@ -35,6 +35,15 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
+			<exclusions>
+				<!-- jsonassert pulls in android-json, whose JSONException is a *checked* exception and
+				     shadows the real org.json:json on the test classpath, breaking tests that use
+				     org.json.JSONObject. jsonassert itself is unused here. (Mirrors the Node module.) -->
+				<exclusion>
+					<groupId>org.skyscreamer</groupId>
+					<artifactId>jsonassert</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.json</groupId>
