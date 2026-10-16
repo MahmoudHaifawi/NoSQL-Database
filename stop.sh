@@ -1,2 +1,3 @@
-docker rm -f $(docker ps -aq)
-docker network rm db_cluster
+#!/bin/bash
+# Stop and remove the cluster containers and the network.
+docker compose down
