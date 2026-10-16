@@ -1,10 +1,18 @@
 package com.database.atypon.app;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/** Resolves the single launch role from CLI args or the environment profile. */
+/**
+ * Resolves the single launch role from CLI args or the environment profile.
+ *
+ * <p>All sources are considered together — {@code --role=}, {@code --spring.profiles.active=}, and
+ * the {@code SPRING_PROFILES_ACTIVE} env var — rather than first-match-wins, so a {@code --role}
+ * that disagrees with a {@code --spring.profiles.active} (or any input naming more than one role)
+ * fails fast here instead of letting Spring's command-line precedence silently pick a different role
+ * or activating two role scans at once.
+ */
 public final class RoleResolver {
 
     public static final Set<String> ROLES = Set.of("node", "coordinator", "gateway");
@@ -13,25 +21,30 @@ public final class RoleResolver {
     }
 
     public static String resolve(String[] args, String envProfiles) {
-        String source = firstNonBlank(argValue(args, "--role="),
-                argValue(args, "--spring.profiles.active="), envProfiles);
-        if (source == null || source.isBlank()) {
-            throw new IllegalArgumentException("no role selected");
-        }
-        List<String> known = new ArrayList<>();
-        for (String part : source.split(",")) {
-            String p = part.trim();
-            if (ROLES.contains(p)) {
-                known.add(p);
+        Set<String> roles = new LinkedHashSet<>();
+        boolean anyToken = false;
+        for (String source : List.of(nullToEmpty(argValue(args, "--role=")),
+                nullToEmpty(argValue(args, "--spring.profiles.active=")), nullToEmpty(envProfiles))) {
+            for (String part : source.split(",")) {
+                String p = part.trim();
+                if (!p.isEmpty()) {
+                    anyToken = true;
+                    if (ROLES.contains(p)) {
+                        roles.add(p);
+                    }
+                }
             }
         }
-        if (known.isEmpty()) {
-            throw new IllegalArgumentException("unknown role: " + source);
+        if (!anyToken) {
+            throw new IllegalArgumentException("no role selected");
         }
-        if (known.size() > 1) {
-            throw new IllegalArgumentException("choose exactly one role, got: " + known);
+        if (roles.isEmpty()) {
+            throw new IllegalArgumentException("unknown role");
         }
-        return known.get(0);
+        if (roles.size() > 1) {
+            throw new IllegalArgumentException("choose exactly one role, got: " + roles);
+        }
+        return roles.iterator().next();
     }
 
     private static String argValue(String[] args, String prefix) {
@@ -43,12 +56,7 @@ public final class RoleResolver {
         return null;
     }
 
-    private static String firstNonBlank(String... values) {
-        for (String v : values) {
-            if (v != null && !v.isBlank()) {
-                return v;
-            }
-        }
-        return null;
+    private static String nullToEmpty(String v) {
+        return v == null ? "" : v;
     }
 }

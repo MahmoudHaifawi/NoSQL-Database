@@ -39,4 +39,20 @@ class RoleResolverTest {
         assertThatThrownBy(() -> RoleResolver.resolve(new String[]{"--spring.profiles.active=node,gateway"}, null))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("exactly one");
     }
+
+    @Test
+    void rejectsConflictingRoleAliasAndProfileArg() {
+        // --role and --spring.profiles.active naming different roles is ambiguous: must fail fast,
+        // never silently pick one (Spring's arg precedence would otherwise win over the alias).
+        assertThatThrownBy(() -> RoleResolver.resolve(
+                new String[]{"--role=node", "--spring.profiles.active=gateway"}, null))
+                .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("exactly one");
+    }
+
+    @Test
+    void acceptsRoleAliasAndMatchingProfileArg() {
+        // Same role from both sources is consistent, not a conflict.
+        assertThat(RoleResolver.resolve(
+                new String[]{"--role=gateway", "--spring.profiles.active=gateway"}, null)).isEqualTo("gateway");
+    }
 }
