@@ -6,10 +6,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        module: [Node, BootstrappingNode, DBMS]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -17,6 +13,5 @@ jobs:
           distribution: temurin
           java-version: '17'
           cache: maven
-      - name: Build & test ${{ matrix.module }}
-        working-directory: ${{ matrix.module }}
+      - name: Build and test (reactor)
         run: mvn -B -ntp verify
