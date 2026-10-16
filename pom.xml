@@ -25,5 +25,6 @@
         <module>Node</module>
         <module>BootstrappingNode</module>
         <module>DBMS</module>
+        <module>app</module>
     </modules>
 </project>

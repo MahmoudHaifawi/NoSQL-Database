@@ -1,0 +1,23 @@
+package com.database.atypon.app;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.context.ActiveProfiles;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringBootTest
+@ActiveProfiles("node")
+class NodeRoleIsolationTest {
+
+    @Autowired
+    ApplicationContext ctx;
+
+    @Test
+    void nodeBeansLoadAndGatewayBeansDoNot() {
+        assertThat(ctx.getBeanNamesForType(com.database.atypon.Node.controllers.read.ReadController.class)).isNotEmpty();
+        assertThat(ctx.getBeanNamesForType(com.database.atypon.DBMS.controller.DashboardController.class)).isEmpty();
+    }
+}
